@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@/lib/api/client";
 import type {
+  Lane,
+  PostGateEticketItem,
   PostGateTransaction,
-  PostGateInspectionResponse,
 } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,28 +11,51 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const GATE_OPTIONS = [
-  { value: "GATE-IN-01", label: "GATE-IN-01" },
-  { value: "GATE-IN-02", label: "GATE-IN-02" },
-  { value: "GATE-IN-03", label: "GATE-IN-03" },
-];
-
 type FormState = "search" | "review" | "success" | "error";
 
 export function PostGatePage() {
   const [formState, setFormState] = useState<FormState>("search");
   const [isLoading, setIsLoading] = useState(false);
   const [trxId, setTrxId] = useState("");
-  const [selectedGate, setSelectedGate] = useState("GATE-IN-01");
+  const [selectedGate, setSelectedGate] = useState<number>(0);
+  const [gates, setGates] = useState<Lane[]>([]);
+  const [isLoadingGates, setIsLoadingGates] = useState(true);
+  const [eticket, setEticket] = useState<PostGateEticketItem | null>(null);
   const [transaction, setTransaction] = useState<PostGateTransaction | null>(null);
-  const [inspection, setInspection] = useState<PostGateInspectionResponse | null>(null);
   const [weight, setWeight] = useState<number>(0);
   const [error, setError] = useState<string>("");
-  const [laneId, setLaneId] = useState<number>(1);
+
+  // Fetch gates on mount
+  useEffect(() => {
+    const fetchGates = async () => {
+      console.log("Fetching gates...");
+      try {
+        const allLanes = await api.getAllLanes();
+        console.log("All lanes response:", allLanes);
+        // Filter for IN transaction type only
+        const inGates = allLanes.filter((lane) => lane.transactiontype === "IN");
+        console.log("Filtered IN gates:", inGates);
+        setGates(inGates);
+        if (inGates.length > 0) {
+          setSelectedGate(inGates[0].id);
+        }
+      } catch (err) {
+        console.error("Failed to fetch gates:", err);
+      } finally {
+        setIsLoadingGates(false);
+      }
+    };
+    fetchGates();
+  }, []);
 
   const handleSearch = async () => {
     if (!trxId.trim()) {
       setError("Please enter a Transaction ID");
+      return;
+    }
+
+    if (selectedGate === 0) {
+      setError("Please select a gate");
       return;
     }
 
@@ -40,37 +64,38 @@ export function PostGatePage() {
     setError("");
 
     try {
-      // Step 1: Get Transaction
-      const trxResponse = await api.getPostGateTransaction(trxId.trim());
+      // Step 1: Get Etickets with selected gate/lane ID
+      const trxResponse = await api.getPostGateTransaction(trxId.trim(), selectedGate);
 
-      if (trxResponse.state !== 0 || !trxResponse.item) {
-        setError("Transaction not found");
+      if (trxResponse.state !== 0 || !trxResponse.item || trxResponse.item.length === 0) {
+        setError("No etickets found for this transaction");
         setFormState("error");
         return;
       }
 
-      const trx = trxResponse.item;
-      setTransaction(trx);
-      setWeight(trx.entryweight);
+      // Get the first eticket from the array
+      const firstEticket = trxResponse.item[0];
+      setEticket(firstEticket);
 
-      // Extract lane ID from lane name (e.g., "GATE-IN-01" -> 1)
-      const laneNum = parseInt(trx.entrylanename.split("-")[2] || "1");
-      setLaneId(laneNum);
+      // Step 2: Try to get Transaction details by Gatepass (optional - may not exist for new transactions)
+      try {
+        const trxDetailedResponse = await api.getTransactionByGatepass(firstEticket.data);
 
-      // Step 2: Check Inspection
-      const inspectionResponse = await api.checkPostGateInspection({
-        transactionID: trx.id,
-        laneID: laneNum,
-        gatepass: trx.gatepass,
-      });
-
-      if (inspectionResponse.state !== 0) {
-        setError("Inspection check failed");
-        setFormState("error");
-        return;
+        if (trxDetailedResponse.state === 0 && trxDetailedResponse.item) {
+          setTransaction(trxDetailedResponse.item);
+          // Set weight from transaction entry weight
+          setWeight(trxDetailedResponse.item.entryweight || 0);
+        } else {
+          // Transaction not found yet (new transaction), set weight to 0
+          setWeight(0);
+        }
+      } catch (err) {
+        // GetTransaction failed, proceed with eticket data only
+        console.log("Transaction details not available, using eticket data");
+        setWeight(0);
       }
 
-      setInspection(inspectionResponse);
+      // Go to review form
       setFormState("review");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch transaction");
@@ -81,20 +106,37 @@ export function PostGatePage() {
   };
 
   const handleConfirmGateIn = async () => {
-    if (!transaction || !inspection) return;
+    if (!eticket) return;
 
     setIsLoading(true);
     setError("");
 
     try {
+      // Step 2: Update Entry Transaction Weight (only if weight > 0)
+      if (weight > 0) {
+        const weightResponse = await api.updateEntryTransactionWeight(eticket.transactionid, weight);
+
+        if (weightResponse.state !== 0) {
+          setError("Failed to update weight: " + weightResponse.message);
+          setFormState("error");
+          return;
+        }
+      }
+
       // Step 3: TruckIN (Finalize)
+      // Use eticket data for truckID and nopol, and construct mediaScan
+      const truckId = eticket.reqno || eticket.container || "TOSNUS";
+      const nopol = eticket.container || eticket.code;
+      const mediaScan = `${eticket.media}^${eticket.code}`;
+
       const response = await api.postGateTruckIN({
-        transactionID: transaction.id,
-        laneID: laneId,
-        truckID: inspection.truckId,
-        nopol: inspection.nopol,
-        gatepassList: [transaction.gatepass],
+        transactionID: eticket.transactionid,
+        laneID: selectedGate, // Use the selected gate
+        truckID: truckId,
+        nopol: nopol,
         postgate: true,
+        mediaScan: mediaScan,
+        gatepassList: [eticket.data], // Use the eticket data string
       });
 
       if (response.state !== 0) {
@@ -109,8 +151,8 @@ export function PostGatePage() {
       setTimeout(() => {
         setFormState("search");
         setTrxId("");
+        setEticket(null);
         setTransaction(null);
-        setInspection(null);
         setError("");
       }, 3000);
     } catch (err) {
@@ -126,7 +168,7 @@ export function PostGatePage() {
       <div className="max-w-2xl mx-auto pt-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-white">POSTGATE GATE-IN</h1>
+          <h1 className="text-3xl font-bold text-white">TO3 Postgate</h1>
         </div>
 
         {/* Search Form */}
@@ -135,7 +177,7 @@ export function PostGatePage() {
             <CardHeader>
               <CardTitle className="text-white">Search Transaction</CardTitle>
               <CardDescription className="text-slate-400">
-                Enter Transaction ID to retrieve gate-in details
+                Enter Transaction ID to retrieve transaction details
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -147,7 +189,7 @@ export function PostGatePage() {
                   id="trxId"
                   value={trxId}
                   onChange={(e) => setTrxId(e.target.value)}
-                  placeholder="Enter gatepass or transaction ID"
+                  placeholder="Enter Transaction ID"
                   className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
                   onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSearch()}
                   disabled={isLoading}
@@ -156,20 +198,26 @@ export function PostGatePage() {
 
               <div className="space-y-2">
                 <Label htmlFor="gate" className="text-slate-200">
-                  Gate (Optional)
+                  Gate
                 </Label>
                 <select
                   id="gate"
                   value={selectedGate}
-                  onChange={(e) => setSelectedGate(e.target.value)}
+                  onChange={(e) => setSelectedGate(parseInt(e.target.value))}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
-                  disabled={isLoading}
+                  disabled={isLoading || isLoadingGates}
                 >
-                  {GATE_OPTIONS.map((gate) => (
-                    <option key={gate.value} value={gate.value}>
-                      {gate.label}
-                    </option>
-                  ))}
+                  {isLoadingGates ? (
+                    <option>Loading gates...</option>
+                  ) : gates.length === 0 ? (
+                    <option>No gates available</option>
+                  ) : (
+                    gates.map((gate) => (
+                      <option key={gate.id} value={gate.id}>
+                        {gate.name}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -191,32 +239,44 @@ export function PostGatePage() {
         )}
 
         {/* Review Form */}
-        {formState === "review" && transaction && inspection && (
+        {formState === "review" && eticket && (
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white">Confirm Gate-In</CardTitle>
               <CardDescription className="text-slate-400">
-                Review transaction details before confirming
+                Review eticket details and enter weight before confirming
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <Label className="text-slate-400">Container</Label>
-                  <p className="text-white font-medium">{transaction.container}</p>
+                  <p className="text-white font-medium">{eticket.container}</p>
                 </div>
                 <div>
-                  <Label className="text-slate-400">Truck ID</Label>
-                  <p className="text-white font-medium">{transaction.truckid}</p>
+                  <Label className="text-slate-400">Request No</Label>
+                  <p className="text-white font-medium">{eticket.reqno}</p>
                 </div>
                 <div>
-                  <Label className="text-slate-400">License</Label>
-                  <p className="text-white font-medium">{transaction.nopol}</p>
+                  <Label className="text-slate-400">Transaction ID</Label>
+                  <p className="text-white font-medium">{eticket.transactionid}</p>
                 </div>
                 <div>
                   <Label className="text-slate-400">Lane</Label>
-                  <p className="text-white font-medium">{transaction.entrylanename}</p>
+                  <p className="text-white font-medium">
+                    {transaction?.entrylanename || `Lane ${eticket.laneid}`}
+                  </p>
                 </div>
+                {transaction?.entrystatus && (
+                  <>
+                    <div className="col-span-2">
+                      <Label className="text-slate-400">Status</Label>
+                      <p className={`text-white font-medium text-xs ${transaction.entrystatus.includes('FAIL') ? 'text-red-400' : 'text-green-400'}`}>
+                        {transaction.entrystatus}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -230,24 +290,13 @@ export function PostGatePage() {
                   onChange={(e) => setWeight(parseInt(e.target.value) || 0)}
                   className="bg-slate-700 border-slate-600 text-white"
                   disabled={isLoading}
+                  placeholder="Enter weight or leave as 0 to skip"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-slate-200">Containers</Label>
-                <div className="bg-slate-700 rounded-md p-3 space-y-2">
-                  {inspection.containers.map((container, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between text-sm text-white p-2 bg-slate-600 rounded"
-                    >
-                      <span className="font-medium">{container.containerId}</span>
-                      <span>| {container.idTrx} |</span>
-                      <span>{container.sealNumber}</span>
-                      <span className="text-slate-300">{container.weight} kg</span>
-                    </div>
-                  ))}
-                </div>
+                {weight === 0 && (
+                  <p className="text-xs text-amber-400">
+                    ⚠️ Weight is 0 - weight update will be skipped
+                  </p>
+                )}
               </div>
 
               {error && (
