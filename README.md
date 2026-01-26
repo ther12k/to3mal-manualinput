@@ -1,73 +1,259 @@
-# React + TypeScript + Vite
+# TO3 Postgate - Manual Input Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + TypeScript web application for manual PostGate transaction processing at TO3MAL terminal. Allows operators to manually confirm gate-in transactions when automated systems are unavailable.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **API Key Authentication**: Secure authentication using API keys
+- **Transaction Search**: Search transactions by Transaction ID with URL parameters support
+- **Multiple Etickets Support**: Tabbed view for handling multiple containers per transaction
+- **Transaction Validation**: Only allows confirmation when transaction record exists
+- **Container List View**: Shows containers in cards when transaction details not found
+- **Modal Details**: View full eticket information in a modal dialog
+- **Docker Deployment**: Volume-based deployment for fast updates
+- **Responsive UI**: Dark theme built with shadcn/ui components
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend**: React 19, TypeScript, Vite
+- **UI Components**: shadcn/ui (Radix UI primitives)
+- **Styling**: Tailwind CSS v4
+- **Routing**: React Router v7
+- **Deployment**: Docker, nginx:alpine
+- **Backend API**: TO3MAL AGTOSNUS API (183.91.69.74)
 
-## Expanding the ESLint configuration
+## Project Structure
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+to3mal-manualinput/
+├── src/
+│   ├── components/
+│   │   └── ui/              # shadcn/ui components
+│   ├── contexts/
+│   │   └── AuthContext.tsx  # Authentication context
+│   ├── lib/
+│   │   └── api/
+│   │       └── client.ts    # API client with endpoints
+│   ├── pages/
+│   │   ├── PostGate/
+│   │   │   └── PostGatePage.tsx
+│   │   └── LoginPage.tsx
+│   ├── types/
+│   │   └── index.ts         # TypeScript types
+│   ├── App.tsx
+│   └── main.tsx
+├── docs/
+│   └── todos.md             # API flow documentation
+├── nginx.conf               # nginx configuration
+├── Dockerfile               # Production Dockerfile
+├── docker-compose.yml       # Docker compose configuration
+└── deploy.sh                # Fast deployment script
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Getting Started
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Prerequisites
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Node.js 18+
+- pnpm (recommended) or npm
+- Docker (for deployment)
+
+### Local Development
+
+1. Install dependencies:
+```bash
+pnpm install
 ```
+
+2. Create `.env` file:
+```env
+VITE_API_BASE_URL=/api
+```
+
+3. Start development server:
+```bash
+pnpm dev
+```
+
+4. Build for production:
+```bash
+pnpm build
+```
+
+### Docker Deployment
+
+The application uses a volume-based deployment strategy - only the `dist` folder needs to be synced, no image rebuild required.
+
+#### Quick Deploy (Server)
+
+1. Build locally:
+```bash
+pnpm build
+```
+
+2. Run deploy script (from local machine):
+```bash
+./deploy.sh
+```
+
+This will:
+- Build the project locally
+- Archive the `dist` folder
+- Upload to server via SSH
+- Extract and replace files on server
+- Container picks up new files immediately (no restart needed)
+
+#### Manual Deploy
+
+1. Start container:
+```bash
+docker-compose up -d
+```
+
+2. View logs:
+```bash
+docker logs -f to3mal-postgate
+```
+
+3. Restart container:
+```bash
+docker restart to3mal-postgate
+```
+
+## Application Flow
+
+### PostGate Transaction Flow
+
+```
+User Input: TR ID + Gate Selection
+    ↓
+1. GetEticketByTransaction(trxID, laneID)
+   → Returns array of etickets for the transaction
+    ↓
+2. GetTransaction(gatepass)
+   → Validates transaction exists
+   → Retrieves weight and details
+    ↓
+IF Transaction Found:
+    → Show Review Screen with tabs for multiple etickets
+    → User can confirm gate-in
+ELSE:
+    → Show Container List (cards)
+    → Modal for eticket details
+    → No confirm button (transaction not ready)
+    ↓
+3. TruckIN(transactionID, gatepassList, postgate=true)
+   → Finalize gate-in process
+```
+
+### URL Parameters
+
+The app supports URL parameters for direct transaction access:
+
+```
+/postgate?trid=1441611&gateId=202
+```
+
+- `trid`: Transaction ID
+- `gateId`: Lane/Gate ID
+
+## API Endpoints
+
+All endpoints require API key authentication via `Apikey` query parameter.
+
+### Configuration
+
+- `POST /Configuration/GetAllLane?Apikey={key}` - Get all lanes/gates
+- `POST /Configuration/Login?Apikey={key}` - Validate credentials
+
+### Transaction
+
+- `POST /Transaction/GetEticketByTransaction?Apikey={key}&transactionId={id}&laneId={laneId}` - Get etickets by transaction
+- `POST /Transaction/GetTransaction?Apikey={key}&gatepass={gatepass}` - Get transaction details by gatepass
+- `POST /Transaction/TruckIN?Apikey={key}` - Finalize gate-in (postgate=true)
+
+### Inspection
+
+- `POST /Transaction/CheckInspection?ApiKey={key}` - Check inspection status (not used in current flow)
+
+### Weight Update
+
+- `POST /Transaction/UpdateEntryTransactionForWeight?Apikey={key}&id={id}&weight={weight}` - Update entry weight
+- `POST /Transaction/UpdateWeight?Apikey={key}&id={id}&weight={weight}` - Alternative weight update
+
+## Authentication
+
+The app uses API key-based authentication:
+
+1. User enters API key on login page
+2. App validates by calling `/Configuration/Login` endpoint
+3. On success, API key stored in localStorage
+4. Subsequent API calls include API key in query parameters
+5. Session persists across page refreshes
+
+**Storage**: `localStorage.setItem("apikey", key)`
+
+## Deployment
+
+### Server Details
+
+- **Server**: rizky@halotec.my.id
+- **Remote Directory**: ~/to3mal
+- **Deployed URL**: https://to3.halotec.my.id
+- **Container Port**: 80 (mapped from host port 3000)
+
+### nginx Configuration
+
+nginx proxies API requests to the TO3MAL backend:
+
+```nginx
+location /api {
+    proxy_pass http://183.91.69.74/AGTOSNUS_Prod/api;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    # CORS headers included
+}
+```
+
+### Environment Variables
+
+- `VITE_API_BASE_URL`: API base URL (default: `/api`)
+
+## Testing
+
+Run unit tests:
+```bash
+pnpm test
+```
+
+Run tests in watch mode:
+```bash
+pnpm test --watch
+```
+
+## Troubleshooting
+
+### 403 Forbidden Error
+
+If you see 403 errors after deployment:
+1. Check nginx.conf is correctly mounted
+2. Restart container: `docker restart to3mal-postgate`
+3. Ensure dist folder contains index.html
+
+### Authentication Not Persisting
+
+If login doesn't persist after refresh:
+1. Check browser console for localStorage errors
+2. Verify API key is being set correctly
+3. Check AuthContext logic
+
+### Gates Not Showing
+
+If gate list is empty:
+1. Check API key is valid
+2. Verify GetAllLane endpoint is accessible
+3. Check browser console for API errors
+
+## License
+
+Proprietary - TO3MAL Internal Use Only
