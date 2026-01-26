@@ -1,0 +1,15 @@
+services:
+  to3mal-postgate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: to3mal-postgate
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    networks:
+      - to3mal-network
+
+networks:
+  to3mal-network:
+    driver: bridge

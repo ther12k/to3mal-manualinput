@@ -13,7 +13,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: path.resolve(__dirname, "../CMToolManualInput.Server/wwwroot"),
+    outDir: "./dist",
     emptyOutDir: true,
   },
   server: {
