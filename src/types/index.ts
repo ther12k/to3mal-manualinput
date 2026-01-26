@@ -39,6 +39,7 @@ export interface User {
 export interface LoginRequest {
   username: string;
   password: string;
+  apikey: string;
 }
 
 export interface LoginResponse {
@@ -173,7 +174,20 @@ export interface ContainerRecord {
 // POSTGATE TYPES
 // ========================
 
-// PostGate Transaction Response from GET /api/transaction?gatepass={trxID}
+// PostGate Eticket Transaction Response from GetEticketByTransaction
+export interface PostGateEticketItem {
+  id: number;
+  datetime: string;
+  laneid: number;
+  transactionid: number;
+  code: string;
+  data: string;
+  type: string;
+  media: string;
+  reqno: string;
+  container: string;
+}
+
 export interface PostGateTransaction {
   id: number;
   gatepass: string;
@@ -182,6 +196,7 @@ export interface PostGateTransaction {
   entryweight: number;
   entrylanename: string;
   container: string;
+  entrystatus?: string;
 }
 
 // PostGate Check Inspection Response from POST /api/inspection/check
@@ -199,14 +214,15 @@ export interface PostGateInspectionResponse {
   containers: PostGateInspectionContainer[];
 }
 
-// PostGate TruckIN Request for POST /api/truckin
+// PostGate TruckIN Request for POST /api/Transaction/TruckIN
 export interface PostGateTruckINRequest {
   transactionID: number;
   laneID: number;
   truckID: string;
   nopol: string;
-  gatepassList: string[];
   postgate: true;
+  mediaScan?: string;
+  gatepassList: string[];
 }
 
 // PostGate TruckIN Response
@@ -221,4 +237,25 @@ export interface PostGateTruckINResponse {
 export interface PostGateUpdateWeightRequest {
   id: number;
   weight: number;
+}
+
+// Lane/Gate from GetAllLane API
+export interface Lane {
+  id: number;
+  name: string;
+  ip: string;
+  lanetype: string;
+  hasweightbridge: number;
+  transactiontype: string; // "IN", "OUT", "DISABLE"
+  hasprinter: number;
+  adamip: string;
+  adamport: number;
+  pushbutton: string;
+  malserviceurl: string | null;
+  tO3SERVICEURL: string;
+  cpprintserviceurl: string;
+  postgateprintserviceurl: string;
+  portal: string;
+  tO3TYPE: string;
+  pushbuttoncancel: string;
 }
