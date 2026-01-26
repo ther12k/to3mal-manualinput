@@ -189,14 +189,34 @@ export interface PostGateEticketItem {
 }
 
 export interface PostGateTransaction {
-  id: number;
-  gatepass: string;
-  truckid: string;
-  nopol: string;
-  entryweight: number;
-  entrylanename: string;
-  container: string;
-  entrystatus?: string;
+  ID: number;
+  DATETIME: string;
+  TERMINAL: string;
+  TRUCKID: string;
+  NOPOL: string;
+  CONTAINER: string;
+  ENTRYLANEID: number;
+  ENTRYLANEIP: string;
+  ENTRYLANENAME: string;
+  ENTRYSTARTTIME: string;
+  ENTRYPICTURE: number;
+  ENTRYWEIGHT: number;
+  ENTRYFINISHTIME: string;
+  ENTRYELAPSEDTIME: number;
+  ENTRYSTATUS: string;
+  ENTRYPRINT: string;
+  EXITLANEID: number | null;
+  EXITLANEIP: string | null;
+  EXITLANENAME: string | null;
+  EXITSTARTTIME: string | null;
+  EXITPICTURE: number | null;
+  EXITWEIGHT: number | null;
+  EXITFINISHTIME: string | null;
+  EXITELAPSEDTIME: number | null;
+  EXITSTATUS: string | null;
+  EXITPRINT: string | null;
+  POSTGATETIME: string | null;
+  COMPLETE: number;
 }
 
 // PostGate Check Inspection Response from POST /api/inspection/check
