@@ -1,0 +1,1 @@
+export { PostGatePage } from "./PostGatePage";
