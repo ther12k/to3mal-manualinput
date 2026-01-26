@@ -28,24 +28,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check if user is logged in on mount
     const token = localStorage.getItem("token");
-    if (token) {
-      api.getCurrentUser()
-        .then((data) => {
-          setUser({
-            id: 0, // We'll get this from the token if needed
-            username: data.username,
-            role: data.role,
-          });
-        })
-        .catch(() => {
-          localStorage.removeItem("token");
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    } else {
-      setIsLoading(false);
+    const apikey = localStorage.getItem("apikey");
+    const username = localStorage.getItem("username");
+
+    // Only proceed if we have all required credentials
+    if (token && apikey && username) {
+      setUser({
+        id: 0,
+        username,
+        role: "User",
+      });
     }
+    setIsLoading(false);
   }, []);
 
   const login = async (credentials: LoginRequest) => {

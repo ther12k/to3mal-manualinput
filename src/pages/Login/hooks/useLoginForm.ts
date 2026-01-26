@@ -11,8 +11,7 @@ function isApiError(err: unknown): err is ApiError {
 }
 
 export function useLoginForm() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [apikey, setApikey] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
@@ -23,14 +22,21 @@ export function useLoginForm() {
     setError("");
     setIsLoading(true);
 
+    if (!apikey.trim()) {
+      setError("API Key is required");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await login({ username, password });
-      navigate("/dashboard");
+      // Login with just API key (username/password are not required)
+      await login({ username: "", password: "", apikey });
+      navigate("/");
     } catch (err) {
       if (isApiError(err)) {
         setError(err.message);
       } else {
-        setError("Invalid username or password");
+        setError("Invalid API key");
       }
     } finally {
       setIsLoading(false);
@@ -38,10 +44,8 @@ export function useLoginForm() {
   };
 
   return {
-    username,
-    setUsername,
-    password,
-    setPassword,
+    apikey,
+    setApikey,
     error,
     isLoading,
     handleSubmit,

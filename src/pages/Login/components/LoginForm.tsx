@@ -8,27 +8,25 @@ import { useLoginForm } from "../hooks/useLoginForm";
 
 export function LoginForm() {
   const {
-    username,
-    setUsername,
-    password,
-    setPassword,
+    apikey,
+    setApikey,
     error,
     isLoading,
     handleSubmit,
   } = useLoginForm();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100 p-4">
-      <Card className="w-full max-w-sm shadow-xl border-t-4 border-t-primary">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
+      <Card className="w-full max-w-sm shadow-xl bg-slate-800 border-slate-700">
         <CardHeader className="space-y-1 text-center pb-8 pt-8">
           <div className="mx-auto w-16 h-16 bg-transparent rounded-2xl flex items-center justify-center mb-4 overflow-hidden">
             <img src="/app-icon.svg" alt="App Icon" className="w-full h-full object-cover" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            Welcome Back
+          <CardTitle className="text-2xl font-bold tracking-tight text-white">
+            TO3 Postgate
           </CardTitle>
-          <CardDescription>
-            Sign in to your account
+          <CardDescription className="text-slate-400">
+            Sign in to access the Gate system
           </CardDescription>
         </CardHeader>
         <CardContent className="pb-8 px-8">
@@ -43,38 +41,24 @@ export function LoginForm() {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="apikey" className="text-slate-200">API Key</Label>
               <Input
-                id="username"
+                id="apikey"
                 type="text"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your API key"
+                value={apikey}
+                onChange={(e) => setApikey(e.target.value)}
                 required
                 autoFocus
-                className="h-10"
+                className="h-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
               />
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="h-10"
-              />
-            </div>
-            <Button type="submit" className="w-full h-10 font-medium" disabled={isLoading}>
+            <Button type="submit" className="w-full h-10 font-medium bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          <div className="mt-6 text-center text-xs text-muted-foreground">
-            <p>CMTool Manual Input System</p>
+          <div className="mt-6 text-center text-xs text-slate-400">
+            <p>TO3 Postgate System</p>
           </div>
         </CardContent>
       </Card>
