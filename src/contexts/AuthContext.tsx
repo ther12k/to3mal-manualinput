@@ -29,10 +29,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check if user is logged in on mount
     const token = localStorage.getItem("token");
     const apikey = localStorage.getItem("apikey");
-    const username = localStorage.getItem("username");
+    const username = localStorage.getItem("username") || "User";
 
-    // Only proceed if we have all required credentials
-    if (token && apikey && username) {
+    // Only proceed if we have token and apikey (username has default)
+    if (token && apikey) {
       setUser({
         id: 0,
         username,

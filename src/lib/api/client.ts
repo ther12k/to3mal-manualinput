@@ -81,11 +81,12 @@ export const api = {
     // Store API key for subsequent calls
     localStorage.setItem("apikey", data.apikey);
     localStorage.setItem("token", "authenticated");
-    localStorage.setItem("username", data.username);
+    // Store a default username since we're using API key auth
+    localStorage.setItem("username", data.username || "User");
 
     return Promise.resolve<LoginResponse>({
       token: "authenticated",
-      username: data.username,
+      username: data.username || "User",
       role: "User",
     });
   },
