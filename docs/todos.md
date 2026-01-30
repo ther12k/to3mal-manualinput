@@ -11,13 +11,10 @@ The actual implemented flow differs from the original design. Here's the current
 ```
 User Input: TR ID + Gate Selection
           ↓
-1. GetEticketByTransaction(trxID, laneID)
-   → Returns array of etickets (PostGateEticketItem[])
-   → Each eticket contains: container, reqno, code, data (gatepass)
-          ↓
-2. GetTransaction(gatepass from first eticket)
-   → Validates transaction exists in backend
-   → Retrieves: ENTRYWEIGHT, ENTRYLANENAME, TRUCKID, NOPOL, etc.
+1. GetTransactionByID(trxID)
+   → Returns transaction details (PostGateTransaction)
+   → Retrieves: ENTRYWEIGHT, ENTRYLANENAME, TRUCKID, NOPOL, CONTAINER, etc.
+   → Creates synthetic eticket from transaction data
           ↓
     ┌─────────────────────────────────────────┐
     │ Transaction Found?                      │
@@ -26,14 +23,14 @@ User Input: TR ID + Gate Selection
        YES                    NO
           ↓                    ↓
 ┌───────────────────┐   ┌──────────────────┐
-│ "review" state    │   │ "list" state     │
-│ - Show tabs for   │   │ - Container cards│
-│   multiple tickets│   │ - Modal for      │
-│ - Show confirm    │   │   details        │
-│   button          │   │ - NO confirm btn │
-└───────────────────┘   └──────────────────┘
+│ "review" state    │   │ "error" state     │
+│ - Show transaction│   │ - Error message   │
+│   details         │   │ - Back button     │
+│ - Show confirm    │
+│   button          │
+└───────────────────┘
           ↓
-3. TruckIN(transactionID, gatepassList, postgate=true)
+2. TruckIN(transactionID, gatepassList, postgate=true)
    → Finalize gate-in process
    → Success: Show success screen, auto-reset after 3s
 ```
@@ -73,7 +70,55 @@ Response:
 
 ### Transaction
 
-#### 3. Get Eticket By Transaction
+#### 3. Get Transaction By ID (Primary)
+```bash
+POST /Transaction/GetTransactionByID?Apikey={key}&trId={id}
+
+Response (Success):
+{
+  "state": 0,
+  "item": {
+    "ID": 12345,
+    "DATETIME": "2026-01-26T10:00:00",
+    "TERMINAL": "T3I",
+    "TRUCKID": "TRK001",
+    "NOPOL": "B 1234 ABC",
+    "CONTAINER": "CMAU1111111",
+    "ENTRYLANEID": 202,
+    "ENTRYLANEIP": "10.203.0.12",
+    "ENTRYLANENAME": "GATE-IN-01",
+    "ENTRYSTARTTIME": "2026-01-26T10:00:00",
+    "ENTRYPICTURE": 1,
+    "ENTRYWEIGHT": 25000,
+    "ENTRYFINISHTIME": "2026-01-26T10:05:00",
+    "ENTRYELAPSEDTIME": 300,
+    "ENTRYSTATUS": "Completed",
+    "ENTRYPRINT": "Y",
+    "EXITLANEID": null,
+    "EXITLANEIP": null,
+    "EXITLANENAME": null,
+    "EXITSTARTTIME": null,
+    "EXITPICTURE": null,
+    "EXITWEIGHT": null,
+    "EXITFINISHTIME": null,
+    "EXITELAPSEDTIME": null,
+    "EXITSTATUS": null,
+    "EXITPRINT": null,
+    "POSTGATETIME": null,
+    "COMPLETE": 0
+  }
+}
+
+Response (Not Found):
+{
+  "state": 1,
+  "message": "Transaction not found"
+}
+```
+
+#### 4. Get Eticket By Transaction (Deprecated)
+> **Note**: This endpoint is deprecated. Use `GetTransactionByID` instead.
+
 ```bash
 POST /Transaction/GetEticketByTransaction?Apikey={key}&transactionId={id}&laneId={laneId}
 
@@ -83,6 +128,7 @@ Response:
   "item": [
     {
       "id": 123,
+      "datetime": "2026-01-26T10:00:00",
       "transactionid": 1441611,
       "laneid": 202,
       "container": "CMAU1111111",
@@ -96,37 +142,10 @@ Response:
 }
 ```
 
-#### 4. Get Transaction By Gatepass
-```bash
-POST /Transaction/GetTransaction?Apikey={key}&gatepass={gatepass}
+#### 5. Get Transaction By Gatepass (Deprecated)
+> **Note**: This endpoint is deprecated. Use `GetTransactionByID` instead.
 
-Response (Success):
-{
-  "state": 0,
-  "item": {
-    "ID": 12345,
-    "TERMINAL": "T3I",
-    "TRUCKID": "TRK001",
-    "NOPOL": "B 1234 ABC",
-    "CONTAINER": "CMAU1111111",
-    "ENTRYLANEID": 202,
-    "ENTRYLANENAME": "GATE-IN-01",
-    "ENTRYSTARTTIME": "2026-01-26T10:00:00",
-    "ENTRYWEIGHT": 25000,
-    "ENTRYFINISHTIME": "2026-01-26T10:05:00",
-    "ENTRYELAPSEDTIME": 300,
-    "COMPLETE": 0
-  }
-}
-
-Response (Not Found - New Transaction):
-{
-  "state": 1,
-  "message": "Transaction not found"
-}
-```
-
-#### 5. TruckIN (Finalize Gate-In)
+#### 6. TruckIN (Finalize Gate-In)
 ```bash
 POST /Transaction/TruckIN?ApiKey={key}
 Content-Type: application/json
@@ -151,7 +170,7 @@ Response:
 
 ### Inspection (Not Currently Used)
 
-#### 6. Check Inspection
+#### 7. Check Inspection
 ```bash
 POST /Transaction/CheckInspection?ApiKey={key}
 Content-Type: application/json
@@ -180,7 +199,7 @@ Response:
 
 ### Weight Update (Optional)
 
-#### 7. Update Entry Transaction Weight
+#### 8. Update Entry Transaction Weight
 ```bash
 POST /Transaction/UpdateEntryTransactionForWeight?Apikey={key}&id={id}&weight={weight}
 

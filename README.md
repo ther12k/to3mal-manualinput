@@ -127,22 +127,17 @@ docker restart to3mal-postgate
 ```
 User Input: TR ID + Gate Selection
     ↓
-1. GetEticketByTransaction(trxID, laneID)
-   → Returns array of etickets for the transaction
-    ↓
-2. GetTransaction(gatepass)
-   → Validates transaction exists
-   → Retrieves weight and details
+1. GetTransactionByID(trxID)
+   → Returns transaction details
+   → Creates synthetic eticket from transaction data
     ↓
 IF Transaction Found:
-    → Show Review Screen with tabs for multiple etickets
+    → Show Review Screen with transaction details
     → User can confirm gate-in
 ELSE:
-    → Show Container List (cards)
-    → Modal for eticket details
-    → No confirm button (transaction not ready)
+    → Show Error Screen
     ↓
-3. TruckIN(transactionID, gatepassList, postgate=true)
+2. TruckIN(transactionID, gatepassList, postgate=true)
    → Finalize gate-in process
 ```
 
@@ -168,8 +163,7 @@ All endpoints require API key authentication via `Apikey` query parameter.
 
 ### Transaction
 
-- `POST /Transaction/GetEticketByTransaction?Apikey={key}&transactionId={id}&laneId={laneId}` - Get etickets by transaction
-- `POST /Transaction/GetTransaction?Apikey={key}&gatepass={gatepass}` - Get transaction details by gatepass
+- `POST /Transaction/GetTransactionByID?Apikey={key}&trId={id}` - Get transaction details by ID
 - `POST /Transaction/TruckIN?Apikey={key}` - Finalize gate-in (postgate=true)
 
 ### Inspection

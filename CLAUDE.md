@@ -37,18 +37,17 @@ This document provides context for Claude Code AI assistant working on this proj
 
 ```
 1. User inputs Transaction ID + Gate selection
-2. GetEticketByTransaction(trxID, laneID)
-   → Returns array of PostGateEticketItem
-3. GetTransaction(gatepass from first eticket)
-   → Validates transaction exists
-   → Gets weight and details
+2. GetTransactionByID(trxID)
+   → Returns PostGateTransaction with all details
+   → Creates synthetic eticket from transaction data
+   → Gets weight, container, truck details directly
 
 Two paths:
 - Transaction FOUND → Show "review" state with confirm button
-- Transaction NOT FOUND → Show "list" state (container cards, no confirm)
+- Transaction NOT FOUND → Show "error" state
 
-4. TruckIN(transactionID, gatepassList, postgate=true)
-   → Finalize gate-in (only when transaction exists)
+3. TruckIN(transactionID, gatepassList, postgate=true)
+   → Finalize gate-in
 ```
 
 ### URL Routing
@@ -180,8 +179,7 @@ pnpm test --watch  # Watch mode
 POST /Configuration/GetAllLane?Apikey={key}
 POST /Configuration/Login?Apikey={key}&body={username,password}
 
-POST /Transaction/GetEticketByTransaction?Apikey={key}&transactionId={id}&laneId={laneId}
-POST /Transaction/GetTransaction?Apikey={key}&gatepass={gatepass}
+POST /Transaction/GetTransactionByID?Apikey={key}&trId={id}
 POST /Transaction/TruckIN?Apikey={key}&body={transactionID,laneID,truckID,nopol,postgate,mediaScan,gatepassList}
 ```
 

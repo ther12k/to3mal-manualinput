@@ -6,6 +6,26 @@ import type {
   PostGateEticketItem,
   PostGateTransaction,
 } from "@/types";
+
+// Helper to create a synthetic eticket from transaction data
+function createEticketFromTransaction(trx: PostGateTransaction): PostGateEticketItem {
+  // Create a gatepass string from transaction data
+  // Format: -1|TERMINAL|TRUCKID|CONTAINER|||||
+  const gatepass = `-1|${trx.TERMINAL}|${trx.TRUCKID}|${trx.CONTAINER}|||||`;
+
+  return {
+    id: trx.ID,
+    datetime: trx.DATETIME,
+    laneid: trx.ENTRYLANEID,
+    transactionid: trx.ID,
+    code: "I", // Default to "I" for IN
+    data: gatepass,
+    type: "IN",
+    media: "picture1", // Default media
+    reqno: trx.TRUCKID,
+    container: trx.CONTAINER,
+  };
+}
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -107,50 +127,27 @@ export function PostGatePage() {
     updateUrl(tridToSearch.trim(), selectedGate);
 
     try {
-      // Step 1: Get Etickets with selected gate/lane ID
-      const trxResponse = await api.getPostGateTransaction(tridToSearch.trim(), selectedGate);
+      // Single API call: Get Transaction by ID (replaces GetEticketByTransaction + GetTransaction)
+      const trxResponse = await api.getTransactionByID(tridToSearch.trim());
 
-      if (trxResponse.state !== 0 || !trxResponse.item || trxResponse.item.length === 0) {
-        setError("No etickets found for this transaction");
+      if (trxResponse.state !== 0 || !trxResponse.item) {
+        setError(trxResponse.message || "Transaction not found");
         setFormState("error");
         return;
       }
 
-      // Store all etickets
-      setEtickets(trxResponse.item);
+      // Transaction found - set transaction data
+      const transactionData = trxResponse.item;
+      setTransaction(transactionData);
+      setWeight(transactionData.ENTRYWEIGHT || 0);
+
+      // Create a synthetic eticket from transaction data for TruckIN call
+      const syntheticEticket = createEticketFromTransaction(transactionData);
+      setEtickets([syntheticEticket]);
       setSelectedEticketIndex(0);
 
-      // Step 2: Try to get Transaction details by Gatepass (optional - may not exist for new transactions)
-      let transactionFound = false;
-      try {
-        const firstEticket = trxResponse.item[0];
-        const trxDetailedResponse = await api.getTransactionByGatepass(firstEticket.data);
-
-        if (trxDetailedResponse.state === 0 && trxDetailedResponse.item) {
-          setTransaction(trxDetailedResponse.item);
-          // Set weight from transaction entry weight
-          setWeight(trxDetailedResponse.item.ENTRYWEIGHT || 0);
-          transactionFound = true;
-        } else {
-          // Transaction not found yet (new transaction)
-          setWeight(0);
-          setTransaction(null);
-          transactionFound = false;
-        }
-      } catch (err) {
-        // GetTransaction failed, proceed with eticket data only
-        console.log("Transaction details not available, using eticket data");
-        setWeight(0);
-        setTransaction(null);
-        transactionFound = false;
-      }
-
-      // Show review if transaction exists, otherwise show list of etickets
-      if (transactionFound) {
-        setFormState("review");
-      } else {
-        setFormState("list");
-      }
+      // Show review state with confirm button
+      setFormState("review");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch transaction");
       setFormState("error");

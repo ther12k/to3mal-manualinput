@@ -123,7 +123,16 @@ export const api = {
     );
   },
 
-  // 1. Get Eticket by Transaction ID (returns array of eticket items)
+  // Get Transaction by ID (returns both etickets and transaction details)
+  getTransactionByID: (trId: string) => {
+    const apikey = getApiKey();
+    return request<{ state: number; item?: PostGateTransaction; message?: string }>(
+      `/Transaction/GetTransactionByID?Apikey=${encodeURIComponent(apikey)}&trId=${encodeURIComponent(trId)}`,
+      { method: "POST" }
+    );
+  },
+
+  // 1. Get Eticket by Transaction ID (returns array of eticket items) - DEPRECATED, use getTransactionByID
   getPostGateTransaction: (transactionId: string, laneId: number) => {
     const apikey = getApiKey();
     return request<{ state: number; item?: PostGateEticketItem[]; message?: string }>(
@@ -132,7 +141,7 @@ export const api = {
     );
   },
 
-  // Get Transaction by Gatepass (for getting weight and other details)
+  // Get Transaction by Gatepass (for getting weight and other details) - DEPRECATED, use getTransactionByID
   getTransactionByGatepass: (gatepass: string) => {
     const apikey = getApiKey();
     return request<{ state: number; item?: PostGateTransaction; message?: string }>(
