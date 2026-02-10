@@ -10,7 +10,9 @@ import type {
   Lane,
   PostGateEticketItem,
   // AMS Types
+  AMSManualInputRequest,
   AMSManualInputResponse,
+  AMSUpdateManualOUTRequest,
   AMSUpdateManualOUTResponse,
 } from "@/types";
 
@@ -213,19 +215,33 @@ export const api = {
   // ========================
 
   // Input Manual AMS
-  inputManualAMS: (containerNo: string) => {
+  inputManualAMS: (data: AMSManualInputRequest) => {
     const apikey = getApiKey();
+    const params = new URLSearchParams({
+      Apikey: apikey,
+      transactionID: data.transactionID.toString(),
+      noReq: data.noReq,
+      container: data.container,
+      containerCombo: data.containerCombo,
+    });
     return request<AMSManualInputResponse>(
-      `/Transaction/InputManualAMS?Apikey=${encodeURIComponent(apikey)}&containerNo=${encodeURIComponent(containerNo)}`,
+      `/Transaction/InputManualAMS?${params.toString()}`,
       { method: "POST" }
     );
   },
 
   // Update Manual OUT AMS
-  updateManualOUTAMS: (containerNo: string) => {
+  updateManualOUTAMS: (data: AMSUpdateManualOUTRequest) => {
     const apikey = getApiKey();
+    const params = new URLSearchParams({
+      Apikey: apikey,
+      transactionID: data.transactionID.toString(),
+      noReq: data.noReq,
+      container: data.container,
+      containerCombo: data.containerCombo,
+    });
     return request<AMSUpdateManualOUTResponse>(
-      `/Transaction/UpdateManualOUTAMS?Apikey=${encodeURIComponent(apikey)}&containerNo=${encodeURIComponent(containerNo)}`,
+      `/Transaction/UpdateManualOUTAMS?${params.toString()}`,
       { method: "POST" }
     );
   },

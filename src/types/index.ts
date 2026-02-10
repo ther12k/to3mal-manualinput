@@ -265,8 +265,10 @@ export interface PostGateUpdateWeightRequest {
 
 // AMS Manual Input Request
 export interface AMSManualInputRequest {
-  containerNo: string;
-  // Add other required fields based on API specification
+  transactionID: number;
+  noReq: string;
+  container: string;
+  containerCombo: string;
 }
 
 // AMS Manual Input Response
@@ -278,8 +280,10 @@ export interface AMSManualInputResponse {
 
 // AMS Update Manual OUT Request
 export interface AMSUpdateManualOUTRequest {
-  containerNo: string;
-  // Add other required fields based on API specification
+  transactionID: number;
+  noReq: string;
+  container: string;
+  containerCombo: string;
 }
 
 // AMS Update Manual OUT Response

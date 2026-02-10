@@ -6,20 +6,36 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-type FormState = "search" | "review" | "success" | "error";
+type FormState = "search" | "success" | "error";
 type AMSType = "INPUT" | "UPDATE_OUT";
 
 export function CustomsPage() {
   const [amsType, setAmsType] = useState<AMSType>("INPUT");
   const [formState, setFormState] = useState<FormState>("search");
   const [isLoading, setIsLoading] = useState(false);
-  const [containerId, setContainerId] = useState("");
+  const [transactionID, setTransactionID] = useState("");
+  const [noReq, setNoReq] = useState("");
+  const [container, setContainer] = useState("");
+  const [containerCombo, setContainerCombo] = useState("");
   const [error, setError] = useState("");
   const [apiResponse, setApiResponse] = useState<any>(null);
 
-  const handleSearch = async () => {
-    if (!containerId.trim()) {
-      setError("Please enter a Container ID");
+  const handleSubmit = async () => {
+    // Validation
+    if (!transactionID.trim()) {
+      setError("Please enter a Transaction ID");
+      return;
+    }
+    if (!noReq.trim()) {
+      setError("Please enter a No Request");
+      return;
+    }
+    if (!container.trim()) {
+      setError("Please enter a Container");
+      return;
+    }
+    if (!containerCombo.trim()) {
+      setError("Please enter a Container Combo");
       return;
     }
 
@@ -29,11 +45,18 @@ export function CustomsPage() {
     setApiResponse(null);
 
     try {
+      const requestData = {
+        transactionID: parseInt(transactionID.trim()),
+        noReq: noReq.trim(),
+        container: container.trim().toUpperCase(),
+        containerCombo: containerCombo.trim().toUpperCase(),
+      };
+
       let response;
       if (amsType === "INPUT") {
-        response = await api.inputManualAMS(containerId.trim());
+        response = await api.inputManualAMS(requestData);
       } else {
-        response = await api.updateManualOUTAMS(containerId.trim());
+        response = await api.updateManualOUTAMS(requestData);
       }
 
       setApiResponse(response);
@@ -52,6 +75,16 @@ export function CustomsPage() {
     }
   };
 
+  const handleReset = () => {
+    setFormState("search");
+    setTransactionID("");
+    setNoReq("");
+    setContainer("");
+    setContainerCombo("");
+    setError("");
+    setApiResponse(null);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
       <div className="max-w-2xl mx-auto pt-8">
@@ -68,10 +101,7 @@ export function CustomsPage() {
               <button
                 onClick={() => {
                   setAmsType("INPUT");
-                  setFormState("search");
-                  setContainerId("");
-                  setError("");
-                  setApiResponse(null);
+                  handleReset();
                 }}
                 className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                   amsType === "INPUT"
@@ -84,10 +114,7 @@ export function CustomsPage() {
               <button
                 onClick={() => {
                   setAmsType("UPDATE_OUT");
-                  setFormState("search");
-                  setContainerId("");
-                  setError("");
-                  setApiResponse(null);
+                  handleReset();
                 }}
                 className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                   amsType === "UPDATE_OUT"
@@ -101,7 +128,7 @@ export function CustomsPage() {
           </CardContent>
         </Card>
 
-        {/* Search Form */}
+        {/* Input Form */}
         {formState === "search" && (
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
@@ -109,21 +136,63 @@ export function CustomsPage() {
                 {amsType === "INPUT" ? "Input Manual AMS" : "Update Manual OUT AMS"}
               </CardTitle>
               <CardDescription className="text-slate-400">
-                Enter Container ID to process {amsType === "INPUT" ? "manual AMS input" : "manual OUT AMS update"}
+                Enter all required fields to process {amsType === "INPUT" ? "manual AMS input" : "manual OUT AMS update"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="containerId" className="text-slate-200">
-                  Container ID *
+                <Label htmlFor="transactionID" className="text-slate-200">
+                  Transaction ID *
                 </Label>
                 <Input
-                  id="containerId"
-                  value={containerId}
-                  onChange={(e) => setContainerId(e.target.value.toUpperCase())}
+                  id="transactionID"
+                  type="number"
+                  value={transactionID}
+                  onChange={(e) => setTransactionID(e.target.value)}
+                  placeholder="e.g., 123456"
+                  className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="noReq" className="text-slate-200">
+                  No Request *
+                </Label>
+                <Input
+                  id="noReq"
+                  value={noReq}
+                  onChange={(e) => setNoReq(e.target.value)}
+                  placeholder="e.g., REQ123456"
+                  className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="container" className="text-slate-200">
+                  Container *
+                </Label>
+                <Input
+                  id="container"
+                  value={container}
+                  onChange={(e) => setContainer(e.target.value.toUpperCase())}
                   placeholder="e.g., TCLU1234567"
                   className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 uppercase"
-                  onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSearch()}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="containerCombo" className="text-slate-200">
+                  Container Combo *
+                </Label>
+                <Input
+                  id="containerCombo"
+                  value={containerCombo}
+                  onChange={(e) => setContainerCombo(e.target.value.toUpperCase())}
+                  placeholder="e.g., TCLU7654321"
+                  className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 uppercase"
                   disabled={isLoading}
                 />
               </div>
@@ -144,7 +213,7 @@ export function CustomsPage() {
               )}
 
               <Button
-                onClick={handleSearch}
+                onClick={handleSubmit}
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 disabled={isLoading}
               >
@@ -164,19 +233,28 @@ export function CustomsPage() {
                   {amsType === "INPUT" ? "AMS Input Successful!" : "AMS Update Successful!"}
                 </h2>
                 <p className="text-slate-300 mb-4">
-                  {apiResponse?.message || "Container has been processed successfully."}
+                  {apiResponse?.message || "Request has been processed successfully."}
                 </p>
-                <div className="bg-slate-800 border border-slate-700 rounded-md p-4 text-left">
-                  <p className="text-slate-400 text-sm mb-1">Container ID:</p>
-                  <p className="text-white font-mono text-lg">{containerId}</p>
+                <div className="bg-slate-800 border border-slate-700 rounded-md p-4 text-left space-y-2">
+                  <div>
+                    <p className="text-slate-400 text-sm">Transaction ID:</p>
+                    <p className="text-white font-mono">{transactionID}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-sm">No Request:</p>
+                    <p className="text-white font-mono">{noReq}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-sm">Container:</p>
+                    <p className="text-white font-mono">{container}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-sm">Container Combo:</p>
+                    <p className="text-white font-mono">{containerCombo}</p>
+                  </div>
                 </div>
                 <Button
-                  onClick={() => {
-                    setFormState("search");
-                    setContainerId("");
-                    setError("");
-                    setApiResponse(null);
-                  }}
+                  onClick={handleReset}
                   className="mt-4 bg-slate-700 hover:bg-slate-600"
                 >
                   Process Another
