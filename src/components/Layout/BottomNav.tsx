@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, ShieldCheck, User, LogOut } from "lucide-react";
+import { api } from "@/lib/api/client";
 
 const navItems = [
   { path: "/", label: "Gate In", icon: Home },
@@ -12,7 +13,8 @@ export function BottomNav() {
   const location = useLocation();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    // Clear apikey, token, and username from localStorage
+    api.logout();
     navigate("/login");
   };
 
