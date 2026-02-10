@@ -259,6 +259,36 @@ export interface PostGateUpdateWeightRequest {
   weight: number;
 }
 
+// ========================
+// AMS (AUTOMATED MANIFEST SYSTEM) TYPES
+// ========================
+
+// AMS Manual Input Request
+export interface AMSManualInputRequest {
+  containerNo: string;
+  // Add other required fields based on API specification
+}
+
+// AMS Manual Input Response
+export interface AMSManualInputResponse {
+  state: number;
+  message: string;
+  item?: any;
+}
+
+// AMS Update Manual OUT Request
+export interface AMSUpdateManualOUTRequest {
+  containerNo: string;
+  // Add other required fields based on API specification
+}
+
+// AMS Update Manual OUT Response
+export interface AMSUpdateManualOUTResponse {
+  state: number;
+  message: string;
+  item?: any;
+}
+
 // Lane/Gate from GetAllLane API
 export interface Lane {
   id: number;

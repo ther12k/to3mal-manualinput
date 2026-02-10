@@ -9,6 +9,9 @@ import type {
   PostGateUpdateWeightRequest,
   Lane,
   PostGateEticketItem,
+  // AMS Types
+  AMSManualInputResponse,
+  AMSUpdateManualOUTResponse,
 } from "@/types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -201,6 +204,28 @@ export const api = {
     const apikey = getApiKey();
     return request<{ state: number; message: string }>(
       `/Transaction/UpdateWeight?Apikey=${encodeURIComponent(apikey)}&id=${data.id}&weight=${data.weight}`,
+      { method: "POST" }
+    );
+  },
+
+  // ========================
+  // AMS API ENDPOINTS
+  // ========================
+
+  // Input Manual AMS
+  inputManualAMS: (containerNo: string) => {
+    const apikey = getApiKey();
+    return request<AMSManualInputResponse>(
+      `/Transaction/InputManualAMS?Apikey=${encodeURIComponent(apikey)}&containerNo=${encodeURIComponent(containerNo)}`,
+      { method: "POST" }
+    );
+  },
+
+  // Update Manual OUT AMS
+  updateManualOUTAMS: (containerNo: string) => {
+    const apikey = getApiKey();
+    return request<AMSUpdateManualOUTResponse>(
+      `/Transaction/UpdateManualOUTAMS?Apikey=${encodeURIComponent(apikey)}&containerNo=${encodeURIComponent(containerNo)}`,
       { method: "POST" }
     );
   },
