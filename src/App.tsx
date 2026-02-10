@@ -4,6 +4,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AppLayout } from "./components/Layout/AppLayout";
 import { LoginPage } from "./pages/Login";
 import { PostGatePage } from "./pages/PostGate";
+import { CustomsPage } from "./pages/Customs";
 import { ProfilePage } from "./pages/Profile";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -55,6 +56,16 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <PostGatePage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/customs"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <CustomsPage />
                   </AppLayout>
                 </ProtectedRoute>
               }
