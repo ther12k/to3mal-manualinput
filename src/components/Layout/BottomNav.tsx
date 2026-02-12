@@ -1,10 +1,11 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, ShieldCheck, User, LogOut } from "lucide-react";
+import { Home, ShieldCheck, LogOut, LogOut as DoorOpen, User } from "lucide-react";
 import { api } from "@/lib/api/client";
 
 const navItems = [
   { path: "/", label: "Gate In", icon: Home },
   { path: "/customs", label: "Customs", icon: ShieldCheck },
+  { path: "/gateout", label: "Gate Out", icon: DoorOpen },
   { path: "/profile", label: "Profile", icon: User },
 ];
 
