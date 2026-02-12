@@ -214,6 +214,15 @@ export const api = {
   // AMS API ENDPOINTS
   // ========================
 
+  // Check server status before operations
+  checkServerStatus: () => {
+    const apikey = getApiKey();
+    return request<{ state: number; message: string; autogateMode?: boolean; dbDown?: boolean }>(
+      `/Configuration/CheckServerStatus?Apikey=${encodeURIComponent(apikey)}`,
+      { method: "POST" }
+    );
+  },
+
   // Input Manual AMS
   inputManualAMS: (data: AMSManualInputRequest) => {
     const apikey = getApiKey();

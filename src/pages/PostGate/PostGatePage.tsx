@@ -55,9 +55,49 @@ export function PostGatePage() {
   const [weight, setWeight] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const [selectedEticketForModal, setSelectedEticketForModal] = useState<PostGateEticketItem | null>(null);
+  const [serverStatus, setServerStatus] = useState<{ autogateMode?: boolean; dbDown?: boolean } | null>(null);
+  const [showServerWarning, setShowServerWarning] = useState(false);
 
-  // Fetch gates on mount
+  // Fetch gates and server status on mount
   useEffect(() => {
+    const fetchGatesAndStatus = async () => {
+      console.log("Fetching gates and server status...");
+      try {
+        const allLanes = await api.getAllLanes();
+        console.log("All lanes response:", allLanes);
+
+        // Check server status
+        const statusResponse = await api.checkServerStatus();
+        console.log("Server status response:", statusResponse);
+
+        if (statusResponse.state === 0 && statusResponse.item) {
+          setServerStatus({
+            autogateMode: statusResponse.item.autogateMode,
+            dbDown: statusResponse.item.dbDown
+          });
+
+          // Show warning if server is not in normal mode
+          if (statusResponse.item.autogateMode || statusResponse.item.dbDown) {
+            setShowServerWarning(true);
+          } else {
+            setShowServerWarning(false);
+          }
+        }
+
+        // Filter for IN transaction type only
+        const inGates = allLanes.filter((lane) => lane.transactiontype === "IN");
+        console.log("Filtered IN gates:", inGates);
+        setGates(inGates);
+        if (inGates.length > 0) {
+          setSelectedGate(inGates[0].id);
+        }
+      } catch (err) {
+        console.error("Failed to fetch gates/status:", err);
+      } finally {
+        setIsLoadingGates(false);
+      }
+    };
+
     const fetchGates = async () => {
       console.log("Fetching gates...");
       try {
