@@ -1,0 +1,15 @@
+services:
+  api-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.proxy
+    container_name: to3mal-api-proxy
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    networks:
+      - to3mal-network
+
+networks:
+  to3mal-network:
+    driver: bridge
