@@ -55,12 +55,11 @@ export function PostGatePage() {
   const [weight, setWeight] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const [selectedEticketForModal, setSelectedEticketForModal] = useState<PostGateEticketItem | null>(null);
-  const [serverStatus, setServerStatus] = useState<{ autogateMode?: boolean; dbDown?: boolean } | null>(null);
   const [showServerWarning, setShowServerWarning] = useState(false);
 
   // Fetch gates and server status on mount
   useEffect(() => {
-    const fetchGatesAndStatus = async () => {
+    const fetchGates = async () => {
       console.log("Fetching gates and server status...");
       try {
         const allLanes = await api.getAllLanes();
@@ -70,14 +69,9 @@ export function PostGatePage() {
         const statusResponse = await api.checkServerStatus();
         console.log("Server status response:", statusResponse);
 
-        if (statusResponse.state === 0 && statusResponse.item) {
-          setServerStatus({
-            autogateMode: statusResponse.item.autogateMode,
-            dbDown: statusResponse.item.dbDown
-          });
-
-          // Show warning if server is not in normal mode
-          if (statusResponse.item.autogateMode || statusResponse.item.dbDown) {
+        // Show warning if server is not in normal mode
+        if (statusResponse.state === 0) {
+          if (statusResponse.autogateMode || statusResponse.dbDown) {
             setShowServerWarning(true);
           } else {
             setShowServerWarning(false);
@@ -93,25 +87,6 @@ export function PostGatePage() {
         }
       } catch (err) {
         console.error("Failed to fetch gates/status:", err);
-      } finally {
-        setIsLoadingGates(false);
-      }
-    };
-
-    const fetchGates = async () => {
-      console.log("Fetching gates...");
-      try {
-        const allLanes = await api.getAllLanes();
-        console.log("All lanes response:", allLanes);
-        // Filter for IN transaction type only
-        const inGates = allLanes.filter((lane) => lane.transactiontype === "IN");
-        console.log("Filtered IN gates:", inGates);
-        setGates(inGates);
-        if (inGates.length > 0) {
-          setSelectedGate(inGates[0].id);
-        }
-      } catch (err) {
-        console.error("Failed to fetch gates:", err);
       } finally {
         setIsLoadingGates(false);
       }
@@ -252,6 +227,25 @@ export function PostGatePage() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-white">TO3 Postgate</h1>
         </div>
+
+        {/* Server Warning - Autogate Mode or DB Down */}
+        {showServerWarning && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              <div className="font-bold mb-2">⚠️ SERVER WARNING</div>
+              <div className="space-y-2">
+                <p>Server is in <strong>Autogate Mode</strong> or <strong>Database Down</strong>.</p>
+                <p className="text-sm text-slate-300">Gate-in operations may not process correctly. Please verify:</p>
+                <ul className="list-disc list-inside text-sm space-y-1 ml-4">
+                  <li>Server is connected to TOS</li>
+                  <li>Autogate system is running</li>
+                  <li>Database is accessible</li>
+                </ul>
+                <p className="text-sm mt-2">Continue only if you can confirm these conditions are met.</p>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Search Form */}
         {(formState === "search" || formState === "error") && (
