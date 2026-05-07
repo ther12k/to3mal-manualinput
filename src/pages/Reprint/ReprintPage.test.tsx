@@ -131,6 +131,9 @@ describe("ReprintPage", () => {
 
     render(<ReprintPage />);
 
+    // Switch to Manual mode first (default is now RFID)
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+
     await user.type(screen.getByLabelText("Transaction ID *"), "1520203");
     await user.click(screen.getByRole("button", { name: "Print CMS" }));
 
@@ -236,6 +239,9 @@ describe("ReprintPage", () => {
     });
 
     render(<ReprintPage />);
+
+    // Switch to Manual mode first (default is now RFID)
+    await user.click(screen.getByRole("button", { name: "Manual" }));
 
     await user.type(screen.getByLabelText("Transaction ID *"), "1520203");
     await user.click(screen.getByRole("button", { name: "Print CMS" }));

@@ -16,7 +16,7 @@ import { buildGatepassFromScannedValue } from "@/lib/scan";
 import type { PostGateTransaction } from "@/types";
 
 export function ReprintPage() {
-  const [inputMode, setInputMode] = useState<"manual" | "rfid" | "qr">("manual");
+  const [inputMode, setInputMode] = useState<"manual" | "rfid" | "qr">("rfid");
   const [transactionId, setTransactionId] = useState("");
   const [manualRfidInput, setManualRfidInput] = useState("");
   const [transaction, setTransaction] = useState<PostGateTransaction | null>(null);
@@ -189,15 +189,6 @@ export function ReprintPage() {
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               <Button
                 type="button"
-                variant={inputMode === "manual" ? "default" : "outline"}
-                onClick={() => setInputMode("manual")}
-                className={`${inputMode === "manual" ? "bg-blue-600 hover:bg-blue-700" : "border-slate-600 text-white hover:bg-slate-700"}`}
-                disabled={isLoading || nfcReading || qrScanning}
-              >
-                Manual
-              </Button>
-              <Button
-                type="button"
                 variant={inputMode === "rfid" ? "default" : "outline"}
                 onClick={() => setInputMode("rfid")}
                 className={`${inputMode === "rfid" ? "bg-blue-600 hover:bg-blue-700" : "border-slate-600 text-white hover:bg-slate-700"}`}
@@ -213,6 +204,15 @@ export function ReprintPage() {
                 disabled={isLoading || nfcReading || qrScanning}
               >
                 QR Scan
+              </Button>
+              <Button
+                type="button"
+                variant={inputMode === "manual" ? "default" : "outline"}
+                onClick={() => setInputMode("manual")}
+                className={`${inputMode === "manual" ? "bg-blue-600 hover:bg-blue-700" : "border-slate-600 text-white hover:bg-slate-700"}`}
+                disabled={isLoading || nfcReading || qrScanning}
+              >
+                Manual
               </Button>
             </div>
 
