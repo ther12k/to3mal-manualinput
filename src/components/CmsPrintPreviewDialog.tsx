@@ -11,11 +11,13 @@ import {
 
 interface CmsPrintPreviewDialogProps {
   html: string | null;
+  xpsUrl?: string;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CmsPrintPreviewDialog({
   html,
+  xpsUrl,
   onOpenChange,
 }: CmsPrintPreviewDialogProps) {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
@@ -55,19 +57,31 @@ export function CmsPrintPreviewDialog({
           />
         </div>
 
-        <div className="flex gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="flex-1 border-slate-600 text-white hover:bg-slate-700"
+            className="border-slate-600 text-white hover:bg-slate-700"
           >
             Close
           </Button>
+          {xpsUrl && (
+            <Button
+              asChild
+              type="button"
+              variant="outline"
+              className="border-amber-600 text-amber-200 hover:bg-amber-950/40"
+            >
+              <a href={xpsUrl} target="_blank" rel="noreferrer">
+                Open XPS
+              </a>
+            </Button>
+          )}
           <Button
             type="button"
             onClick={handlePrint}
-            className="flex-1 bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700"
           >
             Print CMS
           </Button>

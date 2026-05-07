@@ -7,6 +7,7 @@ import { PostGatePage } from "./pages/PostGate";
 import { CustomsPage } from "./pages/Customs";
 import { GateOutPage } from "./pages/GateOut";
 import { ReprintPage } from "./pages/Reprint";
+import { PrintTestPage } from "./pages/PrintTest";
 import { ProfilePage } from "./pages/Profile";
 import { Toaster } from "sonner";
 
@@ -89,6 +90,16 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <ReprintPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/print-test"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <PrintTestPage />
                   </AppLayout>
                 </ProtectedRoute>
               }

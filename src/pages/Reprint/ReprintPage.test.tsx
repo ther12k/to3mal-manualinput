@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { ReprintPage } from "@/pages/Reprint/ReprintPage";
 import { api } from "@/lib/api/client";
 
@@ -106,6 +107,14 @@ const transaction = {
   complete: 0,
 };
 
+function renderReprintPage() {
+  return render(
+    <MemoryRouter>
+      <ReprintPage />
+    </MemoryRouter>
+  );
+}
+
 describe("ReprintPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -129,7 +138,7 @@ describe("ReprintPage", () => {
       bcData: null,
     });
 
-    render(<ReprintPage />);
+    renderReprintPage();
 
     // Switch to Manual mode first (default is now RFID)
     await user.click(screen.getByRole("button", { name: "Manual" }));
@@ -167,7 +176,7 @@ describe("ReprintPage", () => {
       bcData: null,
     });
 
-    render(<ReprintPage />);
+    renderReprintPage();
 
     await user.click(screen.getByRole("button", { name: "RFID" }));
     await user.type(screen.getByLabelText("Container / RFID Number"), "2f:83:a2:80");
@@ -205,7 +214,7 @@ describe("ReprintPage", () => {
       bcData: null,
     });
 
-    render(<ReprintPage />);
+    renderReprintPage();
 
     await user.click(screen.getByRole("button", { name: "QR Scan" }));
     await user.click(await screen.findByRole("button", { name: "Mock QR Scan" }));
@@ -238,7 +247,7 @@ describe("ReprintPage", () => {
       bcData: null,
     });
 
-    render(<ReprintPage />);
+    renderReprintPage();
 
     // Switch to Manual mode first (default is now RFID)
     await user.click(screen.getByRole("button", { name: "Manual" }));

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Printer } from "lucide-react";
 import { QrReader } from "react-qr-reader";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import { useNFCReader } from "@/hooks/useNFCReader";
 import { useQRScanner } from "@/hooks/useQRScanner";
 import { api } from "@/lib/api/client";
 import { buildCmsPrintDocument } from "@/lib/cmsPrint";
+import { buildXpsUrlFromPrintPath } from "@/lib/cmsJsonPrint";
 import { buildGatepassFromScannedValue } from "@/lib/scan";
 import type { PostGateTransaction } from "@/types";
 
@@ -24,6 +26,7 @@ export function ReprintPage() {
   const [manualRfidInput, setManualRfidInput] = useState("");
   const [transaction, setTransaction] = useState<PostGateTransaction | null>(null);
   const [cmsPreviewHtml, setCmsPreviewHtml] = useState<string | null>(null);
+  const [cmsXpsUrl, setCmsXpsUrl] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [detectedScanData, setDetectedScanData] = useState("");
@@ -53,6 +56,7 @@ export function ReprintPage() {
 
   const reprintFromTransaction = async (transactionData: PostGateTransaction) => {
     setTransaction(transactionData);
+    setCmsXpsUrl(buildXpsUrlFromPrintPath(transactionData.entryprint) || "");
 
     const reprintResponse = await api.reprintCMS({
       transactionID: transactionData.id,
@@ -88,6 +92,7 @@ export function ReprintPage() {
     setIsLoading(true);
     setError("");
     setTransaction(null);
+    setCmsXpsUrl("");
     setDetectedScanData("");
 
     try {
@@ -113,6 +118,7 @@ export function ReprintPage() {
     setIsLoading(true);
     setError("");
     setTransaction(null);
+    setCmsXpsUrl("");
     setManualRfidInput("");
     setDetectedScanData(scanData);
 
@@ -179,6 +185,13 @@ export function ReprintPage() {
         <div className="mb-4 sm:mb-6">
           <h1 className="text-3xl font-bold text-white">Reprint CMS</h1>
           <p className="text-slate-400 mt-1">Print CMS from an existing gate-in transaction.</p>
+          <Button
+            asChild
+            variant="outline"
+            className="mt-3 border-slate-600 text-white hover:bg-slate-700"
+          >
+            <Link to="/print-test">Test Print From JSON</Link>
+          </Button>
         </div>
 
         <Card className="bg-slate-800 border-slate-700">
@@ -477,6 +490,7 @@ export function ReprintPage() {
 
         <CmsPrintPreviewDialog
           html={cmsPreviewHtml}
+          xpsUrl={cmsXpsUrl}
           onOpenChange={(open) => {
             if (!open) {
               setCmsPreviewHtml(null);

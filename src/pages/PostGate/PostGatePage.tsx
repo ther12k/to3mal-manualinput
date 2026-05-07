@@ -5,6 +5,7 @@ import { useNFCReader } from "@/hooks/useNFCReader";
 import { useQRScanner } from "@/hooks/useQRScanner";
 import { CmsPrintPreviewDialog } from "@/components/CmsPrintPreviewDialog";
 import { buildCmsPrintDocument } from "@/lib/cmsPrint";
+import { buildXpsUrlFromPrintPath } from "@/lib/cmsJsonPrint";
 import { buildGatepassFromScannedValue } from "@/lib/scan";
 import { toast } from "sonner";
 import { QrReader } from "react-qr-reader";
@@ -90,6 +91,7 @@ export function PostGatePage() {
   const [detectedRfidData, setDetectedRfidData] = useState<string>("");
   const [debugPopupTab, setDebugPopupTab] = useState<"request" | "response">("request");
   const [cmsPreviewHtml, setCmsPreviewHtml] = useState<string | null>(null);
+  const [cmsXpsUrl, setCmsXpsUrl] = useState("");
   const [qrSessionKey, setQrSessionKey] = useState(0);
   const qrSectionRef = useRef<HTMLDivElement | null>(null);
   const qrProcessingRef = useRef(false);
@@ -479,6 +481,18 @@ export function PostGatePage() {
         return;
       }
 
+      try {
+        const refreshedTransactionResponse = await api.getTransactionByID(
+          currentEticket.transactionid.toString()
+        );
+        if (refreshedTransactionResponse.state === 0 && refreshedTransactionResponse.item) {
+          setTransaction(refreshedTransactionResponse.item);
+          setCmsXpsUrl(buildXpsUrlFromPrintPath(refreshedTransactionResponse.item.entryprint) || "");
+        }
+      } catch (refreshError) {
+        console.warn("Unable to fetch generated XPS path after TruckIN:", refreshError);
+      }
+
       await printCms(currentEticket.laneid, response.cms);
       toast.success("Gate-in confirmed successfully!");
       setFormState("success");
@@ -498,6 +512,7 @@ export function PostGatePage() {
         setManualContainer("");
         setManualContainerCombo("");
         setDetectedRfidData("");
+        setCmsXpsUrl("");
         setError("");
         clearUrl();
         stopNfcReading();
@@ -969,6 +984,7 @@ export function PostGatePage() {
                     setManualContainer("");
                     setManualContainerCombo("");
                     setDetectedRfidData("");
+                    setCmsXpsUrl("");
                     clearUrl();
                     stopNfcReading();
                     stopQrScanning();
@@ -1123,6 +1139,7 @@ export function PostGatePage() {
 
         <CmsPrintPreviewDialog
           html={cmsPreviewHtml}
+          xpsUrl={cmsXpsUrl}
           onOpenChange={(open) => {
             if (!open) {
               setCmsPreviewHtml(null);
@@ -1326,6 +1343,7 @@ export function PostGatePage() {
                     setManualContainer("");
                     setManualContainerCombo("");
                     setDetectedRfidData("");
+                    setCmsXpsUrl("");
                     clearUrl();
                     stopNfcReading();
                     stopQrScanning();
@@ -1368,6 +1386,16 @@ export function PostGatePage() {
                 <div className="text-6xl mb-4">✓</div>
                 <h2 className="text-2xl font-bold text-white mb-2">Gate-In Successful!</h2>
                 <p className="text-slate-300">Transaction has been confirmed.</p>
+                {cmsXpsUrl && (
+                  <a
+                    href={cmsXpsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-flex rounded-md border border-green-500 px-4 py-2 text-sm font-medium text-green-100 hover:bg-green-800/40"
+                  >
+                    Open Original XPS
+                  </a>
+                )}
               </div>
             </CardContent>
           </Card>
