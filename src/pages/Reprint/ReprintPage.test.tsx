@@ -11,13 +11,66 @@ const { toast } = vi.hoisted(() => ({
   },
 }));
 
+const { qrPayload } = vi.hoisted(() => ({
+  qrPayload: {
+    value: "AF49F017",
+  },
+}));
+
+const { scanHookMocks } = vi.hoisted(() => ({
+  scanHookMocks: {
+    startNfcReading: vi.fn(),
+    stopNfcReading: vi.fn(),
+    startQrScanning: vi.fn(),
+    stopQrScanning: vi.fn(),
+    handleQrScanResult: vi.fn(),
+    handleQrScanError: vi.fn(),
+  },
+}));
+
 vi.mock("sonner", () => ({
   toast,
+}));
+
+vi.mock("@/hooks/useNFCReader", () => ({
+  useNFCReader: () => ({
+    isSupported: false,
+    isReading: false,
+    error: null,
+    startReading: scanHookMocks.startNfcReading,
+    stopReading: scanHookMocks.stopNfcReading,
+    lastReadData: null,
+  }),
+}));
+
+vi.mock("@/hooks/useQRScanner", () => ({
+  useQRScanner: () => ({
+    isSupported: true,
+    isScanning: false,
+    error: null,
+    startScanning: scanHookMocks.startQrScanning,
+    stopScanning: scanHookMocks.stopQrScanning,
+    handleScanResult: scanHookMocks.handleQrScanResult,
+    handleScanError: scanHookMocks.handleQrScanError,
+    lastScannedData: null,
+  }),
+}));
+
+vi.mock("react-qr-reader", () => ({
+  QrReader: ({ onResult }: { onResult: (result: { getText: () => string } | null, error?: Error) => void }) => (
+    <button
+      type="button"
+      onClick={() => onResult({ getText: () => qrPayload.value })}
+    >
+      Mock QR Scan
+    </button>
+  ),
 }));
 
 vi.mock("@/lib/api/client", () => ({
   api: {
     getTransactionByID: vi.fn(),
+    getTransactionByGatepass: vi.fn(),
     reprintCMS: vi.fn(),
   },
 }));
@@ -56,6 +109,7 @@ const transaction = {
 describe("ReprintPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    qrPayload.value = "AF49F017";
   });
 
   it("loads transaction lane data before calling ReprintCMS and opening CMS preview", async () => {
@@ -89,8 +143,82 @@ describe("ReprintPage", () => {
     });
 
     expect(await screen.findByText("CMS Preview")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Print CMS" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Print CMS" }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Gate IN 4")).toBeInTheDocument();
+  });
+
+  it("uses RFID input as a gatepass lookup before reprinting CMS", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.getTransactionByGatepass).mockResolvedValue({
+      state: 0,
+      item: transaction,
+    } as any);
+    vi.mocked(api.reprintCMS).mockResolvedValue({
+      state: 0,
+      message: "Success",
+      containers: null,
+      cms: {
+        cmsno: "2605715159",
+        container: "SHCU2215522",
+      },
+      bcData: null,
+    });
+
+    render(<ReprintPage />);
+
+    await user.click(screen.getByRole("button", { name: "RFID" }));
+    await user.type(screen.getByLabelText("Container / RFID Number"), "2f:83:a2:80");
+    await user.click(screen.getByRole("button", { name: "Print CMS" }));
+
+    await waitFor(() => {
+      expect(api.getTransactionByGatepass).toHaveBeenCalledWith(
+        "-1|T3I|TOSNUS|2F83A280|||||"
+      );
+      expect(api.reprintCMS).toHaveBeenCalledWith({
+        transactionID: 1520203,
+        laneID: 202,
+      });
+    });
+
+    expect(await screen.findByText("CMS Preview")).toBeInTheDocument();
+    expect(api.getTransactionByID).not.toHaveBeenCalled();
+  });
+
+  it("uses QR scan result as a gatepass lookup before reprinting CMS", async () => {
+    const user = userEvent.setup();
+    qrPayload.value = "https://to3.halotec.my.id/?gatepass=-1%7CT3I%7CTOSNUS%7CAF49F017%7C%7C%7C%7C%7C";
+    vi.mocked(api.getTransactionByGatepass).mockResolvedValue({
+      state: 0,
+      item: transaction,
+    } as any);
+    vi.mocked(api.reprintCMS).mockResolvedValue({
+      state: 0,
+      message: "Success",
+      containers: null,
+      cms: {
+        cmsno: "2605715159",
+        container: "SHCU2215522",
+      },
+      bcData: null,
+    });
+
+    render(<ReprintPage />);
+
+    await user.click(screen.getByRole("button", { name: "QR Scan" }));
+    await user.click(await screen.findByRole("button", { name: "Mock QR Scan" }));
+
+    await waitFor(() => {
+      expect(api.getTransactionByGatepass).toHaveBeenCalledWith(
+        "-1|T3I|TOSNUS|AF49F017|||||"
+      );
+      expect(api.reprintCMS).toHaveBeenCalledWith({
+        transactionID: 1520203,
+        laneID: 202,
+      });
+    });
+
+    expect(await screen.findByText("CMS Preview")).toBeInTheDocument();
+    expect(api.getTransactionByID).not.toHaveBeenCalled();
   });
 
   it("shows a clear error when ReprintCMS returns no cms payload", async () => {
