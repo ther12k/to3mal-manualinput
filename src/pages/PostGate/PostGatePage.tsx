@@ -3,6 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api/client";
 import { useNFCReader } from "@/hooks/useNFCReader";
 import { useQRScanner } from "@/hooks/useQRScanner";
+import { CmsPrintPreviewDialog } from "@/components/CmsPrintPreviewDialog";
+import { buildCmsPrintDocument } from "@/lib/cmsPrint";
 import { buildGatepassFromScannedValue } from "@/lib/scan";
 import { toast } from "sonner";
 import { QrReader } from "react-qr-reader";
@@ -62,127 +64,6 @@ type TransactionLookupResultState = {
   response: unknown;
 };
 
-type CmsPreviewState = {
-  html: string;
-};
-
-function escapeHtml(value: unknown): string {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function buildCmsPrintDocument(cms: Record<string, unknown>, laneName?: string): string {
-  const entries = Object.entries(cms);
-  const highlightedKeys = [
-    "cms",
-    "cmsno",
-    "container",
-    "containerno",
-    "location",
-    "loc",
-    "weight",
-    "truckid",
-    "nopol",
-    "date",
-    "datetime",
-  ];
-
-  const highlighted = entries.filter(([key]) =>
-    highlightedKeys.includes(key.toLowerCase())
-  );
-  const details = entries.filter(
-    ([key]) => !highlightedKeys.includes(key.toLowerCase())
-  );
-
-  const formatRows = (rows: Array<[string, unknown]>) =>
-    rows
-      .map(
-        ([key, value]) => `
-          <div class="row">
-            <div class="label">${escapeHtml(key)}</div>
-            <div class="value">${escapeHtml(
-              typeof value === "object" ? JSON.stringify(value) : value
-            )}</div>
-          </div>
-        `
-      )
-      .join("");
-
-  return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>CMS Print</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        width: 72mm;
-        margin: 0 auto;
-        padding: 8px;
-        color: #111827;
-      }
-      h1 {
-        text-align: center;
-        font-size: 24px;
-        margin: 0 0 8px;
-      }
-      .lane {
-        text-align: center;
-        font-size: 12px;
-        margin-bottom: 12px;
-      }
-      .row {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 6px;
-        font-size: 13px;
-      }
-      .label {
-        font-weight: 700;
-        text-transform: uppercase;
-      }
-      .value {
-        text-align: right;
-        word-break: break-word;
-      }
-      .highlight .value {
-        font-size: 20px;
-        font-weight: 700;
-      }
-      .divider {
-        border-top: 1px dashed #111827;
-        margin: 10px 0;
-      }
-      pre {
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-size: 10px;
-      }
-      @media print {
-        body {
-          margin: 0;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <h1>CMS</h1>
-    ${laneName ? `<div class="lane">${escapeHtml(laneName)}</div>` : ""}
-    <div class="highlight">
-      ${formatRows(highlighted)}
-    </div>
-    ${details.length ? `<div class="divider"></div>${formatRows(details)}` : ""}
-    <div class="divider"></div>
-    <pre>${escapeHtml(JSON.stringify(cms, null, 2))}</pre>
-  </body>
-</html>`;
-}
-
 export function PostGatePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [formState, setFormState] = useState<FormState>("search");
@@ -208,11 +89,10 @@ export function PostGatePage() {
   const [manualContainerCombo, setManualContainerCombo] = useState("");
   const [detectedRfidData, setDetectedRfidData] = useState<string>("");
   const [debugPopupTab, setDebugPopupTab] = useState<"request" | "response">("request");
-  const [cmsPreview, setCmsPreview] = useState<CmsPreviewState | null>(null);
+  const [cmsPreviewHtml, setCmsPreviewHtml] = useState<string | null>(null);
   const [qrSessionKey, setQrSessionKey] = useState(0);
   const qrSectionRef = useRef<HTMLDivElement | null>(null);
   const qrProcessingRef = useRef(false);
-  const cmsPreviewFrameRef = useRef<HTMLIFrameElement | null>(null);
 
   const printCms = async (
     laneId: number,
@@ -225,26 +105,8 @@ export function PostGatePage() {
 
     const lane = gates.find((item) => item.id === laneId);
     const printDocument = buildCmsPrintDocument(cms, lane?.name);
-    setCmsPreview({
-      html: printDocument,
-    });
+    setCmsPreviewHtml(printDocument);
     toast.success("CMS preview ready. Tap Print to continue.");
-  };
-
-  const handlePrintPreview = () => {
-    const frameWindow = cmsPreviewFrameRef.current?.contentWindow;
-    if (!frameWindow) {
-      toast.error("CMS preview is not ready yet.");
-      return;
-    }
-
-    try {
-      frameWindow.focus();
-      frameWindow.print();
-    } catch (printError) {
-      console.error("CMS print invocation failed:", printError);
-      toast.error("Unable to open the print dialog.");
-    }
   };
 
   // NFC reader hook
@@ -1257,43 +1119,14 @@ export function PostGatePage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={!!cmsPreview} onOpenChange={(open) => !open && setCmsPreview(null)}>
-          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-3xl w-[calc(100vw-1.5rem)] sm:w-full">
-            <DialogHeader>
-              <DialogTitle>CMS Preview</DialogTitle>
-              <DialogDescription className="text-slate-400">
-                Review the CMS document, then tap Print.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="rounded-lg border border-slate-700 bg-white overflow-hidden">
-              <iframe
-                ref={cmsPreviewFrameRef}
-                title="CMS Preview"
-                srcDoc={cmsPreview?.html || ""}
-                className="w-full h-[60vh] min-h-[420px]"
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCmsPreview(null)}
-                className="flex-1 border-slate-600 text-white hover:bg-slate-700"
-              >
-                Close
-              </Button>
-              <Button
-                type="button"
-                onClick={handlePrintPreview}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-              >
-                Print CMS
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <CmsPrintPreviewDialog
+          html={cmsPreviewHtml}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCmsPreviewHtml(null);
+            }
+          }}
+        />
 
         {/* Review Form */}
         {formState === "review" && etickets.length > 0 && (
