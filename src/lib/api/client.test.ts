@@ -36,7 +36,7 @@ describe("api client", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/Configuration/Login?Apikey=abc%2B%2F%3D",
+      "http://localhost:8080/api/Configuration/Login?Apikey=abc%2B%2F%3D",
       {
         method: "POST",
         headers: {
@@ -70,7 +70,7 @@ describe("api client", () => {
     await api.getTransactionByGatepass("-1|T3I|TOSNUS|AF49F017|||||");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/Transaction/GetTransaction?Apikey=key%20with%20spaces&gatepass=-1%7CT3I%7CTOSNUS%7CAF49F017%7C%7C%7C%7C%7C",
+      "http://localhost:8080/api/Transaction/GetTransaction?Apikey=key%20with%20spaces&gatepass=-1%7CT3I%7CTOSNUS%7CAF49F017%7C%7C%7C%7C%7C",
       {
         method: "POST",
         headers: {
@@ -100,7 +100,7 @@ describe("api client", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/Transaction/TruckIN?ApiKey=truck-key",
+      "http://localhost:8080/api/Transaction/TruckIN?ApiKey=truck-key",
       {
         method: "POST",
         body: JSON.stringify({
@@ -168,7 +168,7 @@ describe("api client", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/Transaction/InputManualAMS?Apikey=ams+key&transactionID=1514056&noReq=REC267000115286&container=TCKU7308830&containerCombo=TCKU7308831",
+      "http://localhost:8080/api/Transaction/InputManualAMS?Apikey=ams+key&transactionID=1514056&noReq=REC267000115286&container=TCKU7308830&containerCombo=TCKU7308831",
       {
         method: "POST",
         headers: {
