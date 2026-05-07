@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { buildCmsPrintDocument } from "@/lib/cmsPrint";
-import { parseCmsJsonPrintInput, SAMPLE_GATE_IN_JSON } from "@/lib/cmsJsonPrint";
+import { parseCmsJsonPrintInput, SAMPLE_CMS_JSON } from "@/lib/cmsJsonPrint";
 
 export function PrintTestPage() {
-  const [jsonInput, setJsonInput] = useState(SAMPLE_GATE_IN_JSON);
+  const [jsonInput, setJsonInput] = useState(SAMPLE_CMS_JSON);
   const [cmsPreviewHtml, setCmsPreviewHtml] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [summary, setSummary] = useState("");
@@ -54,7 +54,7 @@ export function PrintTestPage() {
           <div>
             <h1 className="text-3xl font-bold text-white">JSON Print Test</h1>
             <p className="text-slate-400 mt-1">
-              Paste Gate In or CMS JSON, preview the CMS receipt, then print from the dialog.
+              Paste TruckIN or CMS JSON, preview the CMS receipt, then print from the dialog.
             </p>
           </div>
           <Button asChild variant="outline" className="border-slate-600 text-white hover:bg-slate-700">
@@ -69,7 +69,7 @@ export function PrintTestPage() {
               CMS JSON Input
             </CardTitle>
             <CardDescription className="text-slate-400">
-              Supports raw transaction JSON, API responses with item, or ReprintCMS responses with cms.
+              Supports TruckIN JSON with `containers[].cms`, raw transaction JSON, or direct CMS payloads.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -104,7 +104,7 @@ export function PrintTestPage() {
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setJsonInput(SAMPLE_GATE_IN_JSON);
+                  setJsonInput(SAMPLE_CMS_JSON);
                   setError("");
                   setSummary("");
                   setXpsUrl("");

@@ -1,3 +1,4 @@
+import { buildCmsPrintDocument } from "@/lib/cmsPrint";
 import { buildXpsUrlFromPrintPath, parseCmsJsonPrintInput } from "@/lib/cmsJsonPrint";
 
 describe("cms json print parser", () => {
@@ -30,6 +31,104 @@ describe("cms json print parser", () => {
       laneID: 222,
       weight: 13340,
     });
+  });
+
+  it("preserves TruckIN containers[].cms payloads for thermal rendering", () => {
+    const result = parseCmsJsonPrintInput(
+      JSON.stringify({
+        state: 0,
+        message: "OK",
+        containers: [
+          {
+            cms: {
+              cmsNO: "2605715819",
+              cmsOp: "TRS",
+              cmsSt: "FULL",
+              cmsCmdt: "GE",
+              cmsTid: "C28132",
+              cmsNopol: "B9873UIX",
+              cmsSizeCont: "40",
+              cmsTime: "07/05/2026 18:24",
+              cmsTerminal: "IN03",
+              cmsWeight: "30064Kg",
+              cmsEi: "IM",
+              loc_stack: "2F-02-04-5",
+              in_time: "20260507182400",
+              containernumber: "FFAU3542029",
+            },
+            bcData: {
+              transactiontype: "IN",
+            },
+          },
+        ],
+      })
+    );
+
+    expect(result.sourceType).toBe("cms");
+    expect(Array.isArray(result.cms.containers)).toBe(true);
+  });
+
+  it("renders TruckIN containers[].cms payloads in the thermal layout", () => {
+    const payload = parseCmsJsonPrintInput(
+      JSON.stringify({
+        state: 0,
+        message: "OK",
+        containers: [
+          {
+            cms: {
+              cmsNO: "2605715819",
+              cmsOp: "TRS",
+              cmsSt: "FULL",
+              cmsCmdt: "GE",
+              cmsTid: "C28132",
+              cmsNopol: "B9873UIX",
+              cmsSizeCont: "40",
+              cmsTime: "07/05/2026 18:24",
+              cmsTerminal: "IN03",
+              cmsWeight: "30064Kg",
+              cmsEi: "IM",
+              loc_stack: "2F-02-04-5",
+              in_time: "20260507182400",
+              containernumber: "FFAU3542029",
+            },
+            bcData: {
+              transactiontype: "IN",
+            },
+          },
+          {
+            cms: {
+              cmsNO: "2605715819",
+              cmsOp: "TRS",
+              cmsSt: "FULL",
+              cmsCmdt: "GE",
+              cmsTid: "C28132",
+              cmsNopol: "B9873UIX",
+              cmsSizeCont: "40",
+              cmsTime: "07/05/2026 18:24",
+              cmsTerminal: "IN03",
+              cmsWeight: "27200Kg",
+              cmsEi: "IM",
+              loc_stack: "2E-16-02-2",
+              in_time: "20260428021700",
+              containernumber: "DFSU1969861",
+            },
+            bcData: {
+              transactiontype: "IN",
+            },
+          },
+        ],
+      })
+    );
+
+    const document = buildCmsPrintDocument(payload.cms, payload.laneName);
+
+    expect(document).toContain("REPRINT");
+    expect(document).toContain("2605715819");
+    expect(document).toContain("FFAU3542029");
+    expect(document).toContain("DFSU1969861");
+    expect(document).toContain("2F-02-04-5");
+    expect(document).toContain("2E-16-02-2");
+    expect(document).not.toContain("rawTransaction");
   });
 
   it("unwraps backend-style cms payloads", () => {

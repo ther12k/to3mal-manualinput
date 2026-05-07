@@ -1,20 +1,34 @@
-export const SAMPLE_GATE_IN_JSON = `{
-  "id": 1521157,
-  "datetime": "2026-05-07T12:23:43",
-  "terminal": "T3I",
-  "truckid": "C33999",
-  "nopol": "B9825NW",
-  "container": "SEGU5321424",
-  "entrylaneid": 222,
-  "entrylanename": "JoinGate In 3",
-  "entryweight": 13340,
-  "entrystatus": "GIN",
-  "entryprint": "Post Gate 1 T03\\\\2026\\\\05\\\\07\\\\1521157_CMS_0705202601075492.xps",
-  "exitlaneid": 124,
-  "exitweight": 9260,
-  "exitstatus": "GOUT",
-  "postgatetime": "2026-05-07T13:07:55.069743",
-  "complete": 1
+export const SAMPLE_CMS_JSON = `{
+  "state": 0,
+  "message": "OK",
+  "containers": [
+    {
+      "cms": {
+        "cmsNO": "2605715819",
+        "cmsOp": "TRS",
+        "cmsSt": "FULL",
+        "cmsCmdt": "GE",
+        "cmsTid": "C28132",
+        "cmsNopol": "B9873UIX",
+        "cmsSizeCont": "40",
+        "cmsTime": "07/05/2026 18:24",
+        "cmsTerminal": "IN03",
+        "cmsWeight": "30064Kg",
+        "cmsEi": "IM",
+        "cmsTrId": "REC267000124312",
+        "loc_stack": "2F-02-04-5",
+        "in_time": "20260507182400",
+        "containernumber": "FFAU3542029"
+      },
+      "bcData": {
+        "transactiontype": "IN",
+        "containersize": "40",
+        "bruttoweights": "30064"
+      }
+    }
+  ],
+  "cms": null,
+  "bcData": null
 }`;
 
 export interface CmsJsonPrintPayload {
@@ -44,8 +58,21 @@ function firstRecordFrom(value: unknown): Record<string, unknown> {
   return value;
 }
 
+function hasTruckInCmsShape(record: Record<string, unknown>): boolean {
+  return (
+    Array.isArray(record.containers) &&
+    record.containers.some(
+      (item) => isRecord(item) && isRecord(item.cms)
+    )
+  );
+}
+
 function unwrapPayload(value: unknown): Record<string, unknown> {
   const record = firstRecordFrom(value);
+
+  if (hasTruckInCmsShape(record)) {
+    return record;
+  }
 
   if (isRecord(record.cms)) {
     return record.cms;
@@ -127,6 +154,7 @@ export function parseCmsJsonPrintInput(rawJson: string): CmsJsonPrintPayload {
     throw new Error(`Invalid JSON: ${detail}`);
   }
 
+  const rootRecord = firstRecordFrom(parsed);
   const payload = unwrapPayload(parsed);
   const laneName =
     typeof payload.entrylanename === "string"
@@ -144,10 +172,19 @@ export function parseCmsJsonPrintInput(rawJson: string): CmsJsonPrintPayload {
     };
   }
 
+  if (hasTruckInCmsShape(payload)) {
+    return {
+      cms: payload,
+      laneName,
+      xpsUrl: buildXpsUrlFromPrintPath(rootRecord.entryprint),
+      sourceType: "cms",
+    };
+  }
+
   return {
     cms: payload,
     laneName,
     xpsUrl: buildXpsUrlFromPrintPath(payload.entryprint),
-    sourceType: isRecord(firstRecordFrom(parsed).cms) ? "cms" : "generic",
+    sourceType: isRecord(rootRecord.cms) ? "cms" : "generic",
   };
 }
