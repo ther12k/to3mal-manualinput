@@ -3,18 +3,19 @@
 
 SEQ_URL="http://172.17.0.1:5341/api/events/raw"
 ACCESS_LOG="/logs/access.log"
+APP_LOG="/logs/app.log"
 
 echo "Starting log shipper for nginx -> SEQ"
-echo "Watching: $ACCESS_LOG"
+echo "Watching: $ACCESS_LOG and $APP_LOG"
 
-# Wait for log file to exist
-while [ ! -f "$ACCESS_LOG" ]; do
-  echo "Waiting for $ACCESS_LOG..."
+# Wait for log files to exist
+while [ ! -f "$ACCESS_LOG" ] && [ ! -f "$APP_LOG" ]; do
+  echo "Waiting for log files..."
   sleep 2
 done
 
-# Tail access log and send to SEQ
-tail -f "$ACCESS_LOG" | while read -r line; do
+# Tail both logs and send to SEQ
+tail -f "$ACCESS_LOG" "$APP_LOG" 2>/dev/null | while read -r line; do
   # Skip empty lines
   [ -z "$line" ] && continue
 

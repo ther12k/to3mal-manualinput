@@ -9,8 +9,8 @@ interface LogEntry {
 
 class Logger {
   private isEnabled(): boolean {
-    // Only log in production or when explicitly enabled
-    return import.meta.env.PROD || localStorage.getItem("DEBUG_LOGGING") === "true";
+    // Always log in production and development
+    return true;
   }
 
   private shouldLogEndpoint(endpoint: string): boolean {
