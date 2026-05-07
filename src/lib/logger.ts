@@ -35,21 +35,28 @@ class Logger {
       console.log(`[${level.toUpperCase()}]`, message, properties);
     }
 
+    // Always log in production for debugging
+    if (import.meta.env.PROD) {
+      console.log(`[LOGGER ${level.toUpperCase()}]`, message);
+    }
+
     // Send to backend logging endpoint in production
     if (import.meta.env.PROD) {
       try {
-        await fetch("/api/log", {
+        const response = await fetch("/api/log", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(entry),
-        }).catch((err) => {
-          // Silent fail - don't break the app if logging fails
-          console.warn("Failed to send log:", err);
         });
+
+        if (!response.ok) {
+          console.error(`Log endpoint returned ${response.status}: ${response.statusText}`);
+        }
       } catch (err) {
-        // Ignore logging errors
+        // Log to console but don't break the app
+        console.error("Failed to send log:", err);
       }
     }
   }
