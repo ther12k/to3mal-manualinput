@@ -8,6 +8,11 @@ interface LogEntry {
 }
 
 class Logger {
+  constructor() {
+    // Log initialization
+    console.log('[LOGGER] Initialized, import.meta.env.PROD:', import.meta.env.PROD);
+  }
+
   private isEnabled(): boolean {
     // Always log in production and development
     return true;
@@ -15,7 +20,7 @@ class Logger {
 
   private shouldLogEndpoint(endpoint: string): boolean {
     // Log all API endpoints
-    return endpoint.startsWith("/api/Transaction") || endpoint.startsWith("/api/Configuration");
+    return endpoint.startsWith("/Transaction") || endpoint.startsWith("/Configuration");
   }
 
   async log(level: LogLevel, message: string, properties?: Record<string, unknown>) {
