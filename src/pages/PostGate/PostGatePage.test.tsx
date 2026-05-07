@@ -50,6 +50,7 @@ vi.mock("@/lib/api/client", () => ({
     checkServerStatus: vi.fn(),
     getTransactionByID: vi.fn(),
     postGateTruckIN: vi.fn(),
+    reprintCMS: vi.fn(),
   },
 }));
 
@@ -68,9 +69,6 @@ describe("PostGatePage", () => {
       autogateMode: false,
       dbDown: false,
     } as any);
-    window.AndroidPrinter = {
-      printCms: vi.fn(),
-    };
   });
 
   it("searches by transaction ID and confirms gate-in with lane from transaction data", async () => {
@@ -144,12 +142,79 @@ describe("PostGatePage", () => {
       });
     });
 
-    expect(window.AndroidPrinter?.printCms).toHaveBeenCalledWith(
-      JSON.stringify({
-        cmsno: "CMS-001",
-        container: "AF49F017",
-      })
-    );
+    expect(await screen.findByText("CMS Preview")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Print CMS" })).toBeInTheDocument();
     expect(await screen.findByText("Gate-In Successful!")).toBeInTheDocument();
+  });
+
+  it("can load CMS preview from ReprintCMS without confirming gate-in again", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.getTransactionByID).mockResolvedValue({
+      state: 0,
+      item: {
+        id: 1513974,
+        datetime: "2026-04-30T00:21:57",
+        terminal: "T3I",
+        truckid: "AF49F017",
+        nopol: "AF49F017",
+        container: "TOSNUS",
+        entrylaneid: 141,
+        entrylaneip: "10.0.0.1",
+        entrylanename: "Gate IN 1",
+        entrystarttime: "2026-04-30T00:21:57",
+        entrypicture: 1,
+        entryweight: 45320,
+        entryfinishtime: "2026-04-30T00:21:58",
+        entryelapsedtime: 1.2,
+        entrystatus: "OK",
+        entryprint: "OK",
+        exitlaneid: null,
+        exitlaneip: null,
+        exitlanename: null,
+        exitstarttime: null,
+        exitpicture: null,
+        exitweight: null,
+        exitfinishtime: null,
+        exitelapsedtime: null,
+        exitstatus: null,
+        exitprint: null,
+        postdatetime: null,
+        complete: 0,
+      },
+    } as any);
+    vi.mocked(api.reprintCMS).mockResolvedValue({
+      state: 0,
+      message: "Success",
+      cms: {
+        cmsno: "CMS-REPRINT-001",
+        container: "AF49F017",
+      },
+      bcData: null,
+      containers: null,
+    });
+
+    render(
+      <MemoryRouter>
+        <PostGatePage />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    await user.type(screen.getByLabelText("Transaction ID *"), "1513974");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    expect(await screen.findByText("Confirm Gate-In")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "TEST PRINT CMS" }));
+
+    await waitFor(() => {
+      expect(api.reprintCMS).toHaveBeenCalledWith({
+        transactionID: 1513974,
+        laneID: 141,
+      });
+    });
+
+    expect(await screen.findByText("CMS Preview")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Print CMS" })).toBeInTheDocument();
+    expect(api.postGateTruckIN).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,8 @@ import type {
   PostGateInspectionResponse,
   PostGateTruckINRequest,
   PostGateTruckINResponse,
+  PostGateReprintCMSRequest,
+  PostGateReprintCMSResponse,
   PostGateUpdateWeightRequest,
   Lane,
   PostGateEticketItem,
@@ -41,6 +43,13 @@ async function request<T>(
 ): Promise<T> {
   let url = `${API_BASE_URL}${endpoint}`;
 
+  // Log the request details
+  console.log("🚀 API Request:", {
+    method: options.method || "GET",
+    url: url,
+    body: options.body ? JSON.parse(options.body as string) : undefined,
+  });
+
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -51,10 +60,17 @@ async function request<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "An error occurred" }));
+    console.error("❌ API Error:", {
+      status: response.status,
+      error: error,
+    });
     throw createApiError(response.status, error.message || "An error occurred");
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log("✅ API Response:", data);
+
+  return data;
 }
 
 export const api = {
@@ -196,6 +212,20 @@ export const api = {
           postgate: data.postgate,
           mediaScan: data.mediaScan,
           gatepassList: data.gatepassList,
+        }),
+      }
+    );
+  },
+
+  reprintCMS: (data: PostGateReprintCMSRequest) => {
+    const apikey = getApiKey();
+    return request<PostGateReprintCMSResponse>(
+      `/Transaction/ReprintCMS?ApiKey=${encodeURIComponent(apikey)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          transactionID: data.transactionID,
+          laneID: data.laneID,
         }),
       }
     );

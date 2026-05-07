@@ -6,7 +6,7 @@ PASSWORD="halotec"
 REMOTE_DIR="~/to3mal"
 
 echo "Building locally..."
-pnpm build
+VITE_API_BASE_URL=/api pnpm build
 
 echo "Creating dist archive..."
 tar -czf dist.tar.gz dist

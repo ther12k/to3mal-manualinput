@@ -189,34 +189,34 @@ export interface PostGateEticketItem {
 }
 
 export interface PostGateTransaction {
-  ID: number;
-  DATETIME: string;
-  TERMINAL: string;
-  TRUCKID: string;
-  NOPOL: string;
-  CONTAINER: string;
-  ENTRYLANEID: number;
-  ENTRYLANEIP: string;
-  ENTRYLANENAME: string;
-  ENTRYSTARTTIME: string;
-  ENTRYPICTURE: number;
-  ENTRYWEIGHT: number;
-  ENTRYFINISHTIME: string;
-  ENTRYELAPSEDTIME: number;
-  ENTRYSTATUS: string;
-  ENTRYPRINT: string;
-  EXITLANEID: number | null;
-  EXITLANEIP: string | null;
-  EXITLANENAME: string | null;
-  EXITSTARTTIME: string | null;
-  EXITPICTURE: number | null;
-  EXITWEIGHT: number | null;
-  EXITFINISHTIME: string | null;
-  EXITELAPSEDTIME: number | null;
-  EXITSTATUS: string | null;
-  EXITPRINT: string | null;
-  POSTGATETIME: string | null;
-  COMPLETE: number;
+  id: number;
+  datetime: string;
+  terminal: string;
+  truckid: string;
+  nopol: string;
+  container: string;
+  entrylaneid: number;
+  entrylaneip: string;
+  entrylanename: string;
+  entrystarttime: string;
+  entrypicture: number;
+  entryweight: number;
+  entryfinishtime: string;
+  entryelapsedtime: number;
+  entrystatus: string;
+  entryprint: string;
+  exitlaneid: number | null;
+  exitlaneip: string | null;
+  exitlanename: string | null;
+  exitstarttime: string | null;
+  exitpicture: number | null;
+  exitweight: number | null;
+  exitfinishtime: string | null;
+  exitelapsedtime: number | null;
+  exitstatus: string | null;
+  exitprint: string | null;
+  postdatetime: string | null;
+  complete: number;
 }
 
 // PostGate Check Inspection Response from POST /api/inspection/check
@@ -251,6 +251,19 @@ export interface PostGateTruckINResponse {
   message: string;
   cms?: Record<string, unknown>;
   bcData?: Record<string, unknown>;
+}
+
+export interface PostGateReprintCMSRequest {
+  transactionID: number;
+  laneID: number;
+}
+
+export interface PostGateReprintCMSResponse {
+  state: number;
+  message: string | null;
+  containers?: unknown;
+  cms?: Record<string, unknown> | null;
+  bcData?: Record<string, unknown> | null;
 }
 
 // PostGate Update Weight Request

@@ -36,7 +36,7 @@ describe("api client", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/Configuration/Login?Apikey=abc%2B%2F%3D",
+      "/api/Configuration/Login?Apikey=abc%2B%2F%3D",
       {
         method: "POST",
         headers: {
@@ -70,7 +70,7 @@ describe("api client", () => {
     await api.getTransactionByGatepass("-1|T3I|TOSNUS|AF49F017|||||");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/Transaction/GetTransaction?Apikey=key%20with%20spaces&gatepass=-1%7CT3I%7CTOSNUS%7CAF49F017%7C%7C%7C%7C%7C",
+      "/api/Transaction/GetTransaction?Apikey=key%20with%20spaces&gatepass=-1%7CT3I%7CTOSNUS%7CAF49F017%7C%7C%7C%7C%7C",
       {
         method: "POST",
         headers: {
@@ -100,7 +100,7 @@ describe("api client", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/Transaction/TruckIN?ApiKey=truck-key",
+      "/api/Transaction/TruckIN?ApiKey=truck-key",
       {
         method: "POST",
         body: JSON.stringify({
@@ -111,6 +111,38 @@ describe("api client", () => {
           postgate: true,
           mediaScan: "TID^AF49F017",
           gatepassList: ["-1|T3I|TOSNUS|AF49F017|||||"],
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  });
+
+  it("formats ReprintCMS with the expected JSON body", async () => {
+    localStorage.setItem("apikey", "reprint-key");
+    fetchMock.mockResolvedValue(
+      mockJsonResponse({
+        state: 0,
+        message: "Success",
+        cms: {
+          cmsno: "CMS-001",
+        },
+      })
+    );
+
+    await api.reprintCMS({
+      transactionID: 1513974,
+      laneID: 141,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/Transaction/ReprintCMS?ApiKey=reprint-key",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          transactionID: 1513974,
+          laneID: 141,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -136,7 +168,7 @@ describe("api client", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/Transaction/InputManualAMS?Apikey=ams+key&transactionID=1514056&noReq=REC267000115286&container=TCKU7308830&containerCombo=TCKU7308831",
+      "/api/Transaction/InputManualAMS?Apikey=ams+key&transactionID=1514056&noReq=REC267000115286&container=TCKU7308830&containerCombo=TCKU7308831",
       {
         method: "POST",
         headers: {

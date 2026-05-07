@@ -7,6 +7,7 @@ import { PostGatePage } from "./pages/PostGate";
 import { CustomsPage } from "./pages/Customs";
 import { GateOutPage } from "./pages/GateOut";
 import { ProfilePage } from "./pages/Profile";
+import { Toaster } from "sonner";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -93,6 +94,19 @@ function App() {
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <Toaster
+            position="top-center"
+            richColors
+            closeButton
+            duration={5000}
+            toastOptions={{
+              style: {
+                background: '#1e293b',
+                color: '#fff',
+                border: '1px solid #334155',
+              },
+            }}
+          />
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

@@ -1,6 +1,6 @@
-# TO3 Postgate - Claude Code Context
+# CLAUDE.md
 
-This document provides context for Claude Code AI assistant working on this project.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
@@ -84,14 +84,31 @@ Two paths:
 ### UI Components
 - `src/components/ui/` - shadcn/ui components (Button, Card, Dialog, Input, Label, Alert, Select)
 
+### Layout & Navigation
+- `src/components/Layout/AppLayout.tsx` - Main layout wrapper with bottom navigation
+- `src/components/Layout/BottomNav.tsx` - Bottom navigation bar with Gate In, Customs, Gate Out, Profile, and Logout
+
+### Pages
+- `src/pages/PostGate/PostGatePage.tsx` - Main transaction processing page (500+ lines)
+- `src/pages/Customs/CustomsPage.tsx` - Customs/AMS manual input page
+- `src/pages/GateOut/GateOutPage.tsx` - Gate Out transaction page
+- `src/pages/Login/` - Login page with API key authentication
+- `src/pages/Profile/ProfilePage.tsx` - User profile page
+
 ### Deployment
 - `Dockerfile` - nginx:alpine with volume mount for dist
-- `docker-compose.yml` - Container orchestration
 - `nginx.conf` - nginx config with API proxy to 183.91.69.74
 - `deploy.sh` - Fast deployment script (builds locally, syncs dist only)
-- `.dockerignore` - Exclude node_modules, .git, etc.
 
 ## Deployment Workflow
+
+### Development
+```bash
+pnpm dev              # Start dev server on port 3000
+pnpm build            # Build for production
+pnpm test             # Run tests with vitest
+pnpm lint             # Run ESLint
+```
 
 ### Fast Deploy (Recommended)
 ```bash
@@ -106,10 +123,10 @@ This script:
 5. Container picks up changes immediately (no restart needed)
 
 ### Why Volume-Based?
-- `dist` folder mounted as read-only volume
+- `dist` folder mounted as read-only volume in container
 - No image rebuild needed for code changes
 - Faster deployment (seconds vs minutes)
-- Only nginx.conf changes require container restart
+- Only nginx.conf changes require container restart via `docker restart to3mal-postgate`
 
 ## Common Tasks
 
@@ -121,14 +138,15 @@ This script:
 
 ### Adding a New Page
 1. Create page component in `src/pages/`
-2. Add route in `src/App.tsx`
-3. Update navigation if needed
+2. Add route in `src/App.tsx` with ProtectedRoute wrapper
+3. Add navigation item to `src/components/Layout/BottomNav.tsx`
 
 ### Styling Guidelines
 - Use Tailwind utility classes
 - Dark theme: `bg-slate-900`, `bg-slate-800`, `text-white`
 - Accent colors: `bg-blue-600` (primary), `bg-green-600` (success)
 - Use shadcn/ui components from `src/components/ui/`
+- Use `@/` path alias for imports (configured in vite.config.ts)
 
 ## Known Issues & Solutions
 
@@ -150,37 +168,41 @@ docker restart to3mal-postgate
 
 ## Testing
 
-### Unit Tests
+### Run Tests
 ```bash
-pnpm test          # Run once
-pnpm test --watch  # Watch mode
+pnpm test          # Run tests with vitest
 ```
 
 ### Manual Testing Checklist
-- [ ] Login with API key persists after refresh
-- [ ] Gates load and display correctly
-- [ ] Transaction search works with valid TR ID
-- [ ] Multiple etickets show tabs
-- [ ] Container list shows when transaction not found
-- [ ] Modal opens with eticket details
-- [ ] Confirm button only shows when transaction exists
-- [ ] URL parameters work: `?trid=123&gateId=456`
-- [ ] TruckIN API call succeeds
+- Login with API key persists after refresh
+- Gates load and display correctly from GetAllLane endpoint
+- Transaction search works with valid TR ID
+- Multiple etickets show tabs
+- Container list shows when transaction not found
+- Modal opens with eticket details
+- Confirm button only shows when transaction exists
+- URL parameters work: `?trid=123&gateId=456`
+- TruckIN API call succeeds
+- Server status check displays warning if autogate mode or database down
 
 ## Backend API Notes
 
 ### Authentication
 - All endpoints require `Apikey` query parameter
 - Login endpoint validates username/password against API key
-- No session/token-based auth - API key is passed with every request
+- API key stored in localStorage and passed with every request
+- No session/token-based auth - uses API key authentication
 
 ### Key Endpoints
 ```
 POST /Configuration/GetAllLane?Apikey={key}
 POST /Configuration/Login?Apikey={key}&body={username,password}
+POST /Configuration/CheckServerStatus?Apikey={key}
 
 POST /Transaction/GetTransactionByID?Apikey={key}&trId={id}
 POST /Transaction/TruckIN?Apikey={key}&body={transactionID,laneID,truckID,nopol,postgate,mediaScan,gatepassList}
+POST /Transaction/InputManualAMS?Apikey={key}&transactionID={}&noReq={}&container={}&containerCombo={}
+POST /Transaction/UpdateManualOUTAMS?Apikey={key}&transactionID={}&noReq={}&container={}&containerCombo={}
 ```
 
 ### Response Format
@@ -211,7 +233,54 @@ refactor: code refactoring
 
 - `VITE_API_BASE_URL` - API base URL (default: `/api`)
   - In production: proxied through nginx to 183.91.69.74
-  - In development: can be set to full backend URL
+  - In development: proxied through vite to http://localhost:8080
+  - Can be set to full backend URL for local development
+
+## nginx Configuration
+
+The nginx config proxies API requests to the backend:
+- `/api` → `http://183.91.69.74/AGTOSNUS_Prod/api`
+- `/pictures` → `http://183.91.69.74/AGTOSNUS_Prod`
+- All other routes serve static files from `/usr/share/nginx/html` with SPA fallback to index.html
+
+## Code Architecture
+
+### Authentication & Authorization
+- API key-based authentication stored in localStorage
+- AuthContext provides login, logout, isAuthenticated, isAdmin
+- ProtectedRoute wrapper checks authentication before rendering pages
+- PublicRoute wrapper redirects authenticated users away from login page
+- Default username "User" stored when username empty (prevents auth loss on refresh)
+
+### API Client Pattern
+- Centralized API client in `src/lib/api/client.ts`
+- All endpoints require `Apikey` query parameter (retrieved via `getApiKey()`)
+- Standardized error handling with ApiError type
+- Typed responses matching backend structure
+
+### Routing & Navigation
+- React Router v7 with BrowserRouter
+- Protected routes: `/`, `/customs`, `/gateout`, `/profile`
+- Public routes: `/login`
+- Bottom navigation component for mobile-friendly navigation
+- URL state support for query parameters
+
+### Theme Management
+- ThemeProvider context with dark/light/system theme support
+- Default dark theme for terminal operations
+- Theme persisted in localStorage
+
+### Form Handling
+- React Hook Form for form state management
+- Zod schemas for validation
+- Sonner for toast notifications
+
+## Additional Resources
+
+- [shadcn/ui Docs](https://ui.shadcn.com/)
+- [Tailwind CSS Docs](https://tailwindcss.com/docs)
+- [React Router Docs](https://reactrouter.com/)
+- [Vite Docs](https://vitejs.dev/)
 
 ## Code Conventions
 
@@ -220,12 +289,14 @@ refactor: code refactoring
 - Define interfaces in `src/types/index.ts`
 - Use type assertions sparingly
 - Prefer `unknown` over `any` for error handling
+- Use `@/` path alias for imports (e.g., `@/types`, `@/lib/api/client`)
 
 ### React
 - Use functional components with hooks
 - Use TypeScript for props
 - Keep components under 300 lines when possible
 - Extract reusable logic to custom hooks
+- Use React Router v7 for navigation (useNavigate, useLocation)
 
 ### Naming
 - Components: PascalCase (`PostGatePage.tsx`)
@@ -233,12 +304,19 @@ refactor: code refactoring
 - Constants: UPPER_SNAKE_CASE (`API_BASE_URL`)
 - Types/Interfaces: PascalCase (`LoginRequest`)
 
-## Additional Resources
+## Git Workflow
 
-- [shadcn/ui Docs](https://ui.shadcn.com/)
-- [Tailwind CSS Docs](https://tailwindcss.com/docs)
-- [React Router Docs](https://reactrouter.com/)
-- [Vite Docs](https://vitejs.dev/)
+### Commit Message Format
+```
+feat: add new feature
+fix: fix bug
+docs: update documentation
+refactor: code refactoring
+```
+
+### Current Branch
+- Default: `master`
+- Deployed from: `master`
 
 ## Project Status
 

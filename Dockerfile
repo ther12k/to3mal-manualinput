@@ -4,7 +4,10 @@ FROM nginx:alpine
 # Create directory for volume
 RUN mkdir -p /usr/share/nginx/html
 
-# Copy nginx configuration
+# Copy main nginx configuration (with SEQ logging)
+COPY nginx-main.conf /etc/nginx/nginx.conf
+
+# Copy server block configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Volume for built files
