@@ -2,22 +2,37 @@
 # Log shipper - tails nginx access logs and sends to SEQ
 
 SEQ_URL="http://172.17.0.1:5341/api/events/raw"
-ACCESS_LOG="/logs/access.log"
-APP_LOG="/logs/app.log"
+ACCESS_LOG="/nginx-logs/access.log"
+APP_LOG="/app-logs/app.log"
 
 echo "Starting log shipper for nginx -> SEQ"
 echo "Watching: $ACCESS_LOG and $APP_LOG"
 
-# Wait for log files to exist
-while [ ! -f "$ACCESS_LOG" ] && [ ! -f "$APP_LOG" ]; do
-  echo "Waiting for log files..."
-  sleep 2
-done
+follow_log_file() {
+  log_file="$1"
+  while [ ! -f "$log_file" ]; do
+    echo "Waiting for $log_file..."
+    sleep 2
+  done
 
-# Tail both logs and send to SEQ
-tail -f "$ACCESS_LOG" "$APP_LOG" 2>/dev/null | while read -r line; do
+  tail -n 0 -f "$log_file"
+}
+
+# Tail both logs without multi-file headers and send each JSON line to SEQ.
+{
+  follow_log_file "$ACCESS_LOG" &
+  follow_log_file "$APP_LOG" &
+  wait
+} 2>/dev/null | while read -r line; do
   # Skip empty lines
   [ -z "$line" ] && continue
+
+  # Only ship JSON-formatted log lines. Some nginx deployments still write
+  # default access logs, which Seq rejects as raw event properties.
+  case "$line" in
+    \{*) ;;
+    *) continue ;;
+  esac
 
   # Use simple ISO 8601 timestamp without milliseconds (Alpine compatible)
   TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")

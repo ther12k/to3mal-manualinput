@@ -527,7 +527,9 @@ export function PostGatePage() {
       });
 
       if (response.state !== 0 || !response.cms) {
-        const errorMsg = response.message || "CMS reprint data not found";
+        const errorMsg =
+          response.message ||
+          "No saved CMS print data found for this transaction. Reprint only works after a successful Gate In/TruckIN print was saved.";
         setError(errorMsg);
         toast.error(errorMsg);
         return;

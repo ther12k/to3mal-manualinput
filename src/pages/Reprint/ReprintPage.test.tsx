@@ -246,7 +246,9 @@ describe("ReprintPage", () => {
     await user.type(screen.getByLabelText("Transaction ID *"), "1520203");
     await user.click(screen.getByRole("button", { name: "Print CMS" }));
 
-    expect(await screen.findByText("CMS reprint data not found")).toBeInTheDocument();
-    expect(toast.error).toHaveBeenCalledWith("CMS reprint data not found");
+    const expectedMessage =
+      "No saved CMS print data found for this transaction. Reprint only works after a successful Gate In/TruckIN print was saved.";
+    expect(await screen.findByText(expectedMessage)).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalledWith(expectedMessage);
   });
 });

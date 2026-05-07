@@ -15,6 +15,9 @@ import { buildCmsPrintDocument } from "@/lib/cmsPrint";
 import { buildGatepassFromScannedValue } from "@/lib/scan";
 import type { PostGateTransaction } from "@/types";
 
+const CMS_REPRINT_NOT_FOUND_MESSAGE =
+  "No saved CMS print data found for this transaction. Reprint only works after a successful Gate In/TruckIN print was saved.";
+
 export function ReprintPage() {
   const [inputMode, setInputMode] = useState<"manual" | "rfid" | "qr">("rfid");
   const [transactionId, setTransactionId] = useState("");
@@ -57,7 +60,7 @@ export function ReprintPage() {
     });
 
     if (reprintResponse.state !== 0 || !reprintResponse.cms) {
-      const errorMsg = reprintResponse.message || "CMS reprint data not found";
+      const errorMsg = reprintResponse.message || CMS_REPRINT_NOT_FOUND_MESSAGE;
       setError(errorMsg);
       toast.error(errorMsg);
       return;
