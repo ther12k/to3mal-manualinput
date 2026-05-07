@@ -1,7 +1,7 @@
 FROM alpine:latest
 
 # Install dependencies
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl jq
 
 # Copy log shipper script
 COPY log-shipper.sh /usr/local/bin/log-shipper.sh

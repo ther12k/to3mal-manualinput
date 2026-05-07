@@ -18,6 +18,55 @@ follow_log_file() {
   tail -n 0 -f "$log_file"
 }
 
+build_seq_event() {
+  line="$1"
+  timestamp="$2"
+
+  if echo "$line" | jq -e 'has("log_data")' >/dev/null 2>&1; then
+    echo "$line" | jq -c --arg fallback_timestamp "$timestamp" '
+      def mask_api_key:
+        if type == "string" then
+          gsub("ApiKey=[^&]*"; "ApiKey=***")
+          | gsub("Apikey=[^&]*"; "Apikey=***")
+          | gsub("apikey=[^&]*"; "apikey=***")
+        else
+          .
+        end;
+
+      {
+        Timestamp: (.log_data.timestamp // .time // $fallback_timestamp),
+        MessageTemplate: (.log_data.message // "Frontend log"),
+        Level: (
+          if (.log_data.level // "") == "error" then "Error"
+          elif (.log_data.level // "") == "warning" or (.log_data.level // "") == "warn" then "Warning"
+          else "Information"
+          end
+        ),
+        Properties: (
+          (.log_data.properties // {})
+          | .endpoint = (.endpoint | mask_api_key)
+        ) + {
+          source: "frontend",
+          log_level: (.log_data.level // null),
+          page_referrer: (.http_referrer // ""),
+          user_agent: (.http_user_agent // ""),
+          remote_addr: (.remote_addr // ""),
+          host: (.host // "")
+        }
+      }
+    '
+  else
+    echo "$line" | jq -c --arg fallback_timestamp "$timestamp" '
+      {
+        Timestamp: (.time // $fallback_timestamp),
+        MessageTemplate: "Nginx HTTP request",
+        Level: "Information",
+        Properties: . + { source: "nginx" }
+      }
+    '
+  fi
+}
+
 # Tail both logs without multi-file headers and send each JSON line to SEQ.
 {
   follow_log_file "$ACCESS_LOG" &
@@ -36,20 +85,17 @@ follow_log_file() {
 
   # Use simple ISO 8601 timestamp without milliseconds (Alpine compatible)
   TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  EVENT=$(build_seq_event "$line" "$TIMESTAMP")
+
+  if [ -z "$EVENT" ]; then
+    continue
+  fi
 
   # Send to SEQ in compact event format
   RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$SEQ_URL" \
     -H "Content-Type: application/json" \
     -H "X-Seq-ApiKey: ${SEQ_API_KEY:-}" \
-    -d "{
-      \"events\": [
-        {
-          \"Timestamp\": \"$TIMESTAMP\",
-          \"MessageTemplate\": \"Nginx HTTP request\",
-          \"Properties\": $line
-        }
-      ]
-    }" 2>&1)
+    -d "{\"events\":[$EVENT]}" 2>&1)
 
   HTTP_CODE=$(echo "$RESPONSE" | tail -1)
   BODY=$(echo "$RESPONSE" | head -1)
