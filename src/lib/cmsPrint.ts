@@ -92,13 +92,13 @@ function isSingleCmsPayload(cms: Record<string, unknown>): boolean {
   ].some((key) => key in cms);
 }
 
-function renderTruckInCmsDocument(cms: Record<string, unknown>, laneName?: string): string {
+function renderTruckInCmsDocument(cms: Record<string, unknown>, _laneName?: string): string {
   const containers = extractTruckInCmsContainers(cms);
   const first = containers[0];
   const firstCms = first.cms;
-  const title = String(cms.documentLabel ?? "REPRINT").trim() || "REPRINT";
-  const primarySubtitle = compactValues(["CMS", firstCms.cmsNO]).join("    ");
-  const laneLabel = laneName ? `<div class="lane">${escapeHtml(laneName)}</div>` : "";
+  const title = "CMS";
+  const primarySubtitle = String(firstCms.cmsNO ?? "").trim();
+  const laneLabel = "";
 
   const sections = containers
     .map(({ cms: containerCms, bcData }, index) => {
@@ -168,75 +168,79 @@ function renderTruckInCmsDocument(cms: Record<string, unknown>, laneName?: strin
         font-family: Arial, sans-serif;
         width: 70mm;
         margin: 0 auto;
-        padding: 10px 8px 16px;
+        padding: 8px 6px 12px;
         color: #111827;
         background: #ffffff;
       }
       .title {
         text-align: center;
-        font-size: 24px;
+        font-size: 16px;
         font-weight: 800;
-        letter-spacing: 0.04em;
-        margin-bottom: 4px;
+        letter-spacing: 0.02em;
+        margin-bottom: 2px;
       }
       .subtitle {
         text-align: center;
-        font-size: 17px;
-        margin-bottom: 2px;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 4px;
       }
       .lane {
         text-align: center;
-        font-size: 12px;
-        margin-bottom: 8px;
+        font-size: 11px;
+        margin-bottom: 6px;
       }
       .container-block {
-        margin-bottom: 10px;
+        margin-bottom: 8px;
       }
       .meta-row,
       .footer-row {
         display: flex;
         justify-content: space-between;
-        gap: 10px;
-        font-size: 12px;
+        gap: 8px;
+        font-size: 10px;
       }
       .top-line {
-        margin-bottom: 4px;
+        margin-bottom: 3px;
       }
       .container-no {
         text-align: center;
-        font-size: 22px;
+        font-size: 18px;
         font-weight: 800;
-        margin: 4px 0 6px;
+        margin: 4px 0 5px;
+        letter-spacing: 0.01em;
       }
       .meta-grid {
         display: grid;
         grid-auto-flow: column;
         grid-auto-columns: 1fr;
-        gap: 8px;
+        gap: 6px;
         text-align: center;
-        font-size: 10px;
-        margin-bottom: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 2px;
       }
       .meta-grid.compact {
         font-size: 8px;
+        font-weight: 600;
       }
       .location {
         text-align: center;
-        font-size: 22px;
+        font-size: 18px;
         font-weight: 800;
-        margin: 8px 0;
+        margin: 6px 0 4px;
       }
       .divider.dashed {
         border-top: 1px dashed #111827;
-        margin-top: 10px;
+        margin-top: 6px;
       }
       .footer {
-        margin-top: 10px;
+        margin-top: 6px;
       }
       .footer-time,
       .footer-site {
         text-align: center;
-        font-size: 11px;
+        font-size: 10px;
         margin-top: 4px;
       }
       @media print {
@@ -268,7 +272,7 @@ function renderTruckInCmsDocument(cms: Record<string, unknown>, laneName?: strin
 </html>`;
 }
 
-function renderSingleCmsDocument(cms: Record<string, unknown>, laneName?: string): string {
+function renderSingleCmsDocument(cms: Record<string, unknown>, _laneName?: string): string {
   const topLine = compactValues([cms.cmsTime ?? cms.datetime, cms.cmsOp]);
   const metaLineOne = compactValues([
     cms.cmsEi,
@@ -281,7 +285,7 @@ function renderSingleCmsDocument(cms: Record<string, unknown>, laneName?: string
     formatWeight(cms.cmsWeight),
   ]);
   const footerLine = compactValues([cms.cmsTid, cms.cmsNopol]);
-  const laneLabel = laneName ? `<div class="lane">${escapeHtml(laneName)}</div>` : "";
+  const laneLabel = "";
 
   return `<!doctype html>
 <html>
@@ -293,63 +297,65 @@ function renderSingleCmsDocument(cms: Record<string, unknown>, laneName?: string
         font-family: Arial, sans-serif;
         width: 70mm;
         margin: 0 auto;
-        padding: 10px 8px 16px;
+        padding: 8px 6px 12px;
         color: #111827;
       }
       .title {
         text-align: center;
-        font-size: 24px;
+        font-size: 16px;
         font-weight: 800;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
       }
       .subtitle {
         text-align: center;
-        font-size: 16px;
+        font-size: 14px;
+        font-weight: 700;
         margin-bottom: 4px;
       }
       .lane {
         text-align: center;
-        font-size: 12px;
-        margin-bottom: 8px;
+        font-size: 11px;
+        margin-bottom: 6px;
       }
       .meta-row {
         display: flex;
-        justify-content: center;
-        gap: 12px;
-        font-size: 11px;
-        margin-bottom: 4px;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 10px;
+        margin-bottom: 3px;
       }
       .container-no {
         text-align: center;
-        font-size: 22px;
+        font-size: 18px;
         font-weight: 800;
-        margin: 8px 0;
+        margin: 4px 0 5px;
       }
       .meta-grid {
         display: grid;
         grid-auto-flow: column;
         grid-auto-columns: 1fr;
-        gap: 8px;
+        gap: 6px;
         text-align: center;
-        font-size: 10px;
-        margin-bottom: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 2px;
       }
       .location {
         text-align: center;
-        font-size: 22px;
+        font-size: 18px;
         font-weight: 800;
-        margin: 10px 0;
+        margin: 6px 0 4px;
       }
       .footer-row {
         display: flex;
         justify-content: space-between;
-        gap: 10px;
-        font-size: 12px;
-        margin-top: 10px;
+        gap: 8px;
+        font-size: 10px;
+        margin-top: 6px;
       }
       .footer-time {
         text-align: center;
-        font-size: 11px;
+        font-size: 10px;
         margin-top: 4px;
       }
       @media print {
