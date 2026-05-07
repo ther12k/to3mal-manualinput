@@ -122,7 +122,7 @@ describe("cms json print parser", () => {
 
     const document = buildCmsPrintDocument(payload.cms, payload.laneName);
 
-    expect(document).toContain(">CMS<");
+    expect(document).toContain(">IMPORT<");
     expect(document).toContain("2605715819");
     expect(document).toContain("FFAU3542029");
     expect(document).toContain("DFSU1969861");

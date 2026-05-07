@@ -29,18 +29,18 @@ function compactValues(values: unknown[]): string[] {
     .filter(Boolean);
 }
 
-function shortStatus(value: unknown): string {
+function fullStatus(value: unknown): string {
   const normalized = String(value ?? "").trim().toUpperCase();
   if (!normalized) {
     return "";
   }
 
-  if (normalized === "FULL") {
-    return "F";
+  if (normalized === "F") {
+    return "FULL";
   }
 
-  if (normalized === "EMPTY") {
-    return "E";
+  if (normalized === "E") {
+    return "EMPTY";
   }
 
   return normalized;
@@ -57,6 +57,17 @@ function formatWeight(value: unknown): string {
   }
 
   return `${raw}Kg`;
+}
+
+function resolveCmsTitle(cms: Record<string, unknown>, bcData?: Record<string, unknown>): string {
+  const movement = String(cms.cmsEi ?? bcData?.transactiontype ?? "").trim().toUpperCase();
+  if (movement === "IM" || movement === "IMPORT") {
+    return "IMPORT";
+  }
+  if (movement === "EX" || movement === "EXPORT") {
+    return "EXPORT";
+  }
+  return "CMS";
 }
 
 interface TruckInCmsContainer {
@@ -96,21 +107,19 @@ function renderTruckInCmsDocument(cms: Record<string, unknown>, _laneName?: stri
   const containers = extractTruckInCmsContainers(cms);
   const first = containers[0];
   const firstCms = first.cms;
-  const title = "CMS";
+  const title = resolveCmsTitle(firstCms, first.bcData);
   const primarySubtitle = String(firstCms.cmsNO ?? "").trim();
-  const laneLabel = "";
 
   const sections = containers
     .map(({ cms: containerCms, bcData }, index) => {
       const topLine = compactValues([
-        containerCms.in_time,
+        containerCms.cmsTime || containerCms.in_time,
         containerCms.cmsOp ?? bcData?.cntrop,
       ]);
-      const metaLineOne = compactValues([
-        bcData?.transactiontype ?? containerCms.cmsEi,
-        shortStatus(containerCms.cmsSt),
+      const summaryLine = compactValues([
+        fullStatus(containerCms.cmsSt),
         containerCms.cmsCmdt,
-        containerCms.cmsTerminal || "",
+        _laneName || String(containerCms.cmsTerminal ?? "").trim(),
       ]);
       const metaLineTwo = compactValues([
         containerCms.cmsSizeCont || bcData?.containersize,
@@ -129,15 +138,15 @@ function renderTruckInCmsDocument(cms: Record<string, unknown>, _laneName?: stri
           }
           <div class="container-no">${escapeHtml(containerCms.containernumber)}</div>
           ${
-            metaLineOne.length
-              ? `<div class="meta-grid">${metaLineOne
+            summaryLine.length
+              ? `<div class="summary-line">${summaryLine
                   .map((value) => `<span>${escapeHtml(value)}</span>`)
-                  .join("")}</div>`
+                  .join(" ")}</div>`
               : ""
           }
           ${
             metaLineTwo.length
-              ? `<div class="meta-grid compact">${metaLineTwo
+              ? `<div class="meta-grid">${metaLineTwo
                   .map((value) => `<span>${escapeHtml(value)}</span>`)
                   .join("")}</div>`
               : ""
@@ -145,7 +154,7 @@ function renderTruckInCmsDocument(cms: Record<string, unknown>, _laneName?: stri
           <div class="location">${escapeHtml(location)}</div>
           ${
             index < containers.length - 1
-              ? '<div class="divider dashed"></div>'
+              ? '<div class="section-gap"></div>'
               : ""
           }
         </section>
@@ -156,7 +165,9 @@ function renderTruckInCmsDocument(cms: Record<string, unknown>, _laneName?: stri
   const footerLeft = String(firstCms.cmsTid ?? "").trim();
   const footerRight = String(firstCms.cmsNopol ?? "").trim();
   const footerTime = String(firstCms.cmsTime ?? "").trim();
-  const footerSite = String(cms.siteLabel ?? "").trim();
+  const footerSite = String(cms.siteLabel ?? "AREA TANJUNG PRIOK 2").trim();
+  const footerLineOne = String(cms.footerLineOne ?? "No Pungli No Tipping").trim();
+  const footerLineTwo = String(cms.footerLineTwo ?? "#Pelabuhan Bersih").trim();
 
   return `<!doctype html>
 <html>
@@ -168,80 +179,80 @@ function renderTruckInCmsDocument(cms: Record<string, unknown>, _laneName?: stri
         font-family: Arial, sans-serif;
         width: 70mm;
         margin: 0 auto;
-        padding: 8px 6px 12px;
+        padding: 10px 8px 16px;
         color: #111827;
         background: #ffffff;
       }
       .title {
         text-align: center;
-        font-size: 16px;
+        font-size: 24px;
         font-weight: 800;
         letter-spacing: 0.02em;
-        margin-bottom: 2px;
+        margin-bottom: 26px;
       }
       .subtitle {
-        text-align: center;
-        font-size: 14px;
-        font-weight: 700;
-        margin-bottom: 4px;
-      }
-      .lane {
-        text-align: center;
-        font-size: 11px;
-        margin-bottom: 6px;
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 26px;
       }
       .container-block {
-        margin-bottom: 8px;
+        margin-bottom: 18px;
       }
       .meta-row,
       .footer-row {
         display: flex;
         justify-content: space-between;
-        gap: 8px;
-        font-size: 10px;
+        gap: 12px;
+        font-size: 12px;
       }
       .top-line {
-        margin-bottom: 3px;
+        margin-bottom: 26px;
       }
       .container-no {
         text-align: center;
-        font-size: 18px;
+        font-size: 24px;
         font-weight: 800;
-        margin: 4px 0 5px;
+        margin: 0 0 22px;
         letter-spacing: 0.01em;
+      }
+      .summary-line {
+        text-align: left;
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 26px;
       }
       .meta-grid {
         display: grid;
-        grid-auto-flow: column;
-        grid-auto-columns: 1fr;
-        gap: 6px;
-        text-align: center;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        text-align: left;
         font-size: 14px;
         font-weight: 500;
-        margin-bottom: 2px;
-      }
-      .meta-grid.compact {
-        font-size: 8px;
-        font-weight: 600;
+        margin-bottom: 28px;
       }
       .location {
         text-align: center;
-        font-size: 18px;
+        font-size: 24px;
         font-weight: 800;
-        margin: 6px 0 4px;
+        margin: 0;
       }
-      .divider.dashed {
-        border-top: 1px dashed #111827;
-        margin-top: 6px;
+      .section-gap {
+        height: 20px;
       }
       .footer {
-        margin-top: 6px;
+        margin-top: 32px;
       }
-      .footer-time,
-      .footer-site {
+      .footer-time {
         text-align: center;
-        font-size: 10px;
-        margin-top: 4px;
+        font-size: 12px;
+        margin-top: 14px;
+      }
+      .footer-site,
+      .footer-line {
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 34px;
       }
       @media print {
         body {
@@ -253,9 +264,7 @@ function renderTruckInCmsDocument(cms: Record<string, unknown>, _laneName?: stri
   <body>
     <div class="title">${escapeHtml(title)}</div>
     <div class="subtitle">${escapeHtml(primarySubtitle)}</div>
-    ${laneLabel}
     ${sections}
-    <div class="divider dashed"></div>
     <div class="footer">
       ${
         footerLeft || footerRight
@@ -267,6 +276,8 @@ function renderTruckInCmsDocument(cms: Record<string, unknown>, _laneName?: stri
       }
       ${footerTime ? `<div class="footer-time">${escapeHtml(footerTime)}</div>` : ""}
       ${footerSite ? `<div class="footer-site">${escapeHtml(footerSite)}</div>` : ""}
+      ${footerLineOne ? `<div class="footer-line">${escapeHtml(footerLineOne)}</div>` : ""}
+      ${footerLineTwo ? `<div class="footer-line">${escapeHtml(footerLineTwo)}</div>` : ""}
     </div>
   </body>
 </html>`;
@@ -274,18 +285,20 @@ function renderTruckInCmsDocument(cms: Record<string, unknown>, _laneName?: stri
 
 function renderSingleCmsDocument(cms: Record<string, unknown>, _laneName?: string): string {
   const topLine = compactValues([cms.cmsTime ?? cms.datetime, cms.cmsOp]);
-  const metaLineOne = compactValues([
-    cms.cmsEi,
-    shortStatus(cms.cmsSt),
+  const summaryLine = compactValues([
+    fullStatus(cms.cmsSt),
     cms.cmsCmdt,
-    cms.cmsTerminal,
+    _laneName || cms.cmsTerminal,
   ]);
   const metaLineTwo = compactValues([
     cms.cmsSizeCont,
     formatWeight(cms.cmsWeight),
   ]);
   const footerLine = compactValues([cms.cmsTid, cms.cmsNopol]);
-  const laneLabel = "";
+  const title = resolveCmsTitle(cms);
+  const footerSite = String(cms.siteLabel ?? "AREA TANJUNG PRIOK 2").trim();
+  const footerLineOne = String(cms.footerLineOne ?? "No Pungli No Tipping").trim();
+  const footerLineTwo = String(cms.footerLineTwo ?? "#Pelabuhan Bersih").trim();
 
   return `<!doctype html>
 <html>
@@ -297,66 +310,72 @@ function renderSingleCmsDocument(cms: Record<string, unknown>, _laneName?: strin
         font-family: Arial, sans-serif;
         width: 70mm;
         margin: 0 auto;
-        padding: 8px 6px 12px;
+        padding: 10px 8px 16px;
         color: #111827;
       }
       .title {
         text-align: center;
-        font-size: 16px;
+        font-size: 24px;
         font-weight: 800;
-        margin-bottom: 2px;
+        margin-bottom: 26px;
       }
       .subtitle {
-        text-align: center;
-        font-size: 14px;
-        font-weight: 700;
-        margin-bottom: 4px;
-      }
-      .lane {
-        text-align: center;
-        font-size: 11px;
-        margin-bottom: 6px;
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 26px;
       }
       .meta-row {
         display: flex;
         justify-content: space-between;
-        gap: 8px;
-        font-size: 10px;
-        margin-bottom: 3px;
+        gap: 12px;
+        font-size: 12px;
+        margin-bottom: 26px;
       }
       .container-no {
         text-align: center;
-        font-size: 18px;
+        font-size: 24px;
         font-weight: 800;
-        margin: 4px 0 5px;
+        margin: 0 0 22px;
+      }
+      .summary-line {
+        text-align: left;
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 26px;
       }
       .meta-grid {
         display: grid;
-        grid-auto-flow: column;
-        grid-auto-columns: 1fr;
-        gap: 6px;
-        text-align: center;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        text-align: left;
         font-size: 14px;
         font-weight: 500;
-        margin-bottom: 2px;
+        margin-bottom: 28px;
       }
       .location {
         text-align: center;
-        font-size: 18px;
+        font-size: 24px;
         font-weight: 800;
-        margin: 6px 0 4px;
+        margin: 0;
       }
       .footer-row {
         display: flex;
         justify-content: space-between;
-        gap: 8px;
-        font-size: 10px;
-        margin-top: 6px;
+        gap: 12px;
+        font-size: 12px;
+        margin-top: 32px;
       }
       .footer-time {
         text-align: center;
-        font-size: 10px;
-        margin-top: 4px;
+        font-size: 12px;
+        margin-top: 14px;
+      }
+      .footer-site,
+      .footer-line {
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 34px;
       }
       @media print {
         body {
@@ -366,9 +385,8 @@ function renderSingleCmsDocument(cms: Record<string, unknown>, _laneName?: strin
     </style>
   </head>
   <body>
-    <div class="title">CMS</div>
+    <div class="title">${escapeHtml(title)}</div>
     <div class="subtitle">${escapeHtml(cms.cmsNO ?? "")}</div>
-    ${laneLabel}
     ${
       topLine.length
         ? `<div class="meta-row">${topLine
@@ -378,10 +396,10 @@ function renderSingleCmsDocument(cms: Record<string, unknown>, _laneName?: strin
     }
     <div class="container-no">${escapeHtml(cms.containernumber ?? cms.container)}</div>
     ${
-      metaLineOne.length
-        ? `<div class="meta-grid">${metaLineOne
+      summaryLine.length
+        ? `<div class="summary-line">${summaryLine
             .map((value) => `<span>${escapeHtml(value)}</span>`)
-            .join("")}</div>`
+            .join(" ")}</div>`
         : ""
     }
     ${
@@ -400,6 +418,9 @@ function renderSingleCmsDocument(cms: Record<string, unknown>, _laneName?: strin
         : ""
     }
     ${cms.cmsTime ? `<div class="footer-time">${escapeHtml(cms.cmsTime)}</div>` : ""}
+    ${footerSite ? `<div class="footer-site">${escapeHtml(footerSite)}</div>` : ""}
+    ${footerLineOne ? `<div class="footer-line">${escapeHtml(footerLineOne)}</div>` : ""}
+    ${footerLineTwo ? `<div class="footer-line">${escapeHtml(footerLineTwo)}</div>` : ""}
   </body>
 </html>`;
 }
