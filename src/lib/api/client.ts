@@ -17,6 +17,7 @@ import type {
   AMSUpdateManualOUTRequest,
   AMSUpdateManualOUTResponse,
 } from "@/types";
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
@@ -43,12 +44,25 @@ async function request<T>(
 ): Promise<T> {
   let url = `${API_BASE_URL}${endpoint}`;
 
+  // Parse request body for logging
+  let requestBody: unknown;
+  if (options.body) {
+    try {
+      requestBody = JSON.parse(options.body as string);
+    } catch {
+      requestBody = options.body;
+    }
+  }
+
   // Log the request details
   console.log("🚀 API Request:", {
     method: options.method || "GET",
     url: url,
-    body: options.body ? JSON.parse(options.body as string) : undefined,
+    body: requestBody,
   });
+
+  // Enhanced logging to SEQ
+  logger.logApiRequest(endpoint, options.method || "GET", requestBody);
 
   const response = await fetch(url, {
     ...options,
@@ -64,11 +78,15 @@ async function request<T>(
       status: response.status,
       error: error,
     });
+    logger.logApiResponse(endpoint, response.status, error);
     throw createApiError(response.status, error.message || "An error occurred");
   }
 
   const data = await response.json();
   console.log("✅ API Response:", data);
+
+  // Enhanced logging to SEQ
+  logger.logApiResponse(endpoint, response.status, data);
 
   return data;
 }
