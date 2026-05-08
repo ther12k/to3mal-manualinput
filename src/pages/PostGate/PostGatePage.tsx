@@ -493,7 +493,13 @@ export function PostGatePage() {
         console.warn("Unable to fetch generated XPS path after TruckIN:", refreshError);
       }
 
-      await printCms(currentEticket.laneid, response.cms);
+      // Extract CMS from containers array (response.cms is typically null)
+      const cmsData =
+        response.containers && response.containers.length > 0
+          ? response.containers[0].cms
+          : response.cms;
+
+      await printCms(currentEticket.laneid, cmsData);
       toast.success("Gate-in confirmed successfully!");
       setFormState("success");
 
