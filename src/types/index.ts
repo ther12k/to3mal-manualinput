@@ -265,7 +265,10 @@ export interface PostGateReprintCMSRequest {
 export interface PostGateReprintCMSResponse {
   state: number;
   message: string | null;
-  containers?: unknown;
+  containers?: Array<{
+    cms: Record<string, unknown> | null;
+    bcData?: Record<string, unknown> | null;
+  }> | null;
   cms?: Record<string, unknown> | null;
   bcData?: Record<string, unknown> | null;
 }

@@ -217,4 +217,73 @@ describe("PostGatePage", () => {
     expect(screen.getByRole("button", { name: "Print CMS" })).toBeInTheDocument();
     expect(api.postGateTruckIN).not.toHaveBeenCalled();
   });
+
+  it("can load CMS preview from nested ReprintCMS containers payload", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.getTransactionByID).mockResolvedValue({
+      state: 0,
+      item: {
+        id: 1513974,
+        datetime: "2026-04-30T00:21:57",
+        terminal: "T3I",
+        truckid: "AF49F017",
+        nopol: "AF49F017",
+        container: "TOSNUS",
+        entrylaneid: 141,
+        entrylaneip: "10.0.0.1",
+        entrylanename: "Gate IN 1",
+        entrystarttime: "2026-04-30T00:21:57",
+        entrypicture: 1,
+        entryweight: 45320,
+        entryfinishtime: "2026-04-30T00:21:58",
+        entryelapsedtime: 1.2,
+        entrystatus: "OK",
+        entryprint: "OK",
+        exitlaneid: null,
+        exitlaneip: null,
+        exitlanename: null,
+        exitstarttime: null,
+        exitpicture: null,
+        exitweight: null,
+        exitfinishtime: null,
+        exitelapsedtime: null,
+        exitstatus: null,
+        exitprint: null,
+        postdatetime: null,
+        complete: 0,
+      },
+    } as any);
+    vi.mocked(api.reprintCMS).mockResolvedValue({
+      state: 0,
+      message: "Success",
+      containers: [
+        {
+          cms: {
+            cmsno: "CMS-REPRINT-002",
+            containernumber: "AF49F017",
+          },
+          bcData: null,
+        },
+      ],
+      cms: null,
+      bcData: null,
+    } as any);
+
+    render(
+      <MemoryRouter>
+        <PostGatePage />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    await user.type(screen.getByLabelText("Transaction ID *"), "1513974");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    expect(await screen.findByText("Confirm Gate-In")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "TEST PRINT CMS" }));
+
+    expect(await screen.findByText("CMS Preview")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Print CMS" })).toBeInTheDocument();
+    expect(api.postGateTruckIN).not.toHaveBeenCalled();
+  });
 });

@@ -63,16 +63,16 @@ export function ReprintPage() {
       laneID: transactionData.entrylaneid,
     });
 
-    if (reprintResponse.state !== 0 || !reprintResponse.cms) {
+    const cmsData = reprintResponse.containers?.[0]?.cms ?? reprintResponse.cms;
+
+    if (reprintResponse.state !== 0 || !cmsData) {
       const errorMsg = reprintResponse.message || CMS_REPRINT_NOT_FOUND_MESSAGE;
       setError(errorMsg);
       toast.error(errorMsg);
       return;
     }
 
-    setCmsPreviewHtml(
-      buildCmsPrintDocument(reprintResponse.cms, transactionData.entrylanename)
-    );
+    setCmsPreviewHtml(buildCmsPrintDocument(cmsData, transactionData.entrylanename));
     toast.success("CMS preview ready. Tap Print to continue.");
   };
 

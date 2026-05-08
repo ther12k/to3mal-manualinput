@@ -260,4 +260,36 @@ describe("ReprintPage", () => {
     expect(await screen.findByText(expectedMessage)).toBeInTheDocument();
     expect(toast.error).toHaveBeenCalledWith(expectedMessage);
   });
+
+  it("opens CMS preview when ReprintCMS returns nested containers cms data", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.getTransactionByID).mockResolvedValue({
+      state: 0,
+      item: transaction,
+    } as any);
+    vi.mocked(api.reprintCMS).mockResolvedValue({
+      state: 0,
+      message: "Success",
+      containers: [
+        {
+          cms: {
+            cmsno: "2605715159",
+            containernumber: "SHCU2215522",
+          },
+          bcData: null,
+        },
+      ],
+      cms: null,
+      bcData: null,
+    });
+
+    renderReprintPage();
+
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    await user.type(screen.getByLabelText("Transaction ID *"), "1520203");
+    await user.click(screen.getAllByRole("button", { name: "Print CMS" })[0]);
+
+    expect(await screen.findByText("CMS Preview")).toBeInTheDocument();
+    expect(screen.getByText("Gate IN 4")).toBeInTheDocument();
+  });
 });

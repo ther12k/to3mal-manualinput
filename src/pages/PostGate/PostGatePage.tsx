@@ -547,7 +547,9 @@ export function PostGatePage() {
         laneID: currentEticket.laneid,
       });
 
-      if (response.state !== 0 || !response.cms) {
+      const cmsData = response.containers?.[0]?.cms ?? response.cms;
+
+      if (response.state !== 0 || !cmsData) {
         const errorMsg =
           response.message ||
           "No saved CMS print data found for this transaction. Reprint only works after a successful Gate In/TruckIN print was saved.";
@@ -556,7 +558,7 @@ export function PostGatePage() {
         return;
       }
 
-      await printCms(currentEticket.laneid, response.cms);
+      await printCms(currentEticket.laneid, cmsData);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to reprint CMS";
       setError(errorMsg);
