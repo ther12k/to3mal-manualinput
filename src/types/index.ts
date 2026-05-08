@@ -249,6 +249,10 @@ export interface PostGateTruckINRequest {
 export interface PostGateTruckINResponse {
   state: number;
   message: string;
+  containers?: Array<{
+    cms: Record<string, unknown>;
+    bcData?: Record<string, unknown>;
+  }>;
   cms?: Record<string, unknown>;
   bcData?: Record<string, unknown>;
 }
